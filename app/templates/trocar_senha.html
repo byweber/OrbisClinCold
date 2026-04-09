@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Trocar Senha{% endblock %}
+{% block page_title %}Trocar Senha{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto">
+  {% if current_user.must_change_password %}
+  <div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-xl px-4 py-3 mb-5 text-sm">
+    <strong>Troca obrigatória.</strong> Defina uma nova senha antes de continuar.
+  </div>
+  {% endif %}
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="h-1.5 bg-gradient-to-r from-ccf to-ccflight"></div>
+    <div class="px-6 py-7">
+      <h2 class="font-bold text-slate-800 text-lg mb-5">Alterar Senha</h2>
+      {% if sucesso %}
+      <div class="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg mb-5">
+        ✓ Senha alterada! <a href="/" class="text-ccf hover:underline ml-2">Ir para o dashboard →</a>
+      </div>
+      {% endif %}
+      {% if erro %}
+      <div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-5">{{ erro }}</div>
+      {% endif %}
+      <form method="post" action="/auth/trocar-senha">
+        <div class="mb-4">
+          <label class="field-label">Senha Atual</label>
+          <input name="senha_atual" type="password" required class="field-input" placeholder="••••••••">
+        </div>
+        <div class="mb-4">
+          <label class="field-label">Nova Senha <span class="text-slate-400 font-normal normal-case">(mín. 8 chars)</span></label>
+          <input name="nova_senha"  type="password" required minlength="8" class="field-input" placeholder="••••••••">
+        </div>
+        <div class="mb-6">
+          <label class="field-label">Confirmar Nova Senha</label>
+          <input name="confirmar"   type="password" required class="field-input" placeholder="••••••••">
+        </div>
+        <button type="submit" class="w-full bg-ccf hover:bg-ccflight text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">
+          Salvar
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

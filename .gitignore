@@ -1,0 +1,30 @@
+# Ambiente
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Banco e dados sensíveis
+*.db
+*.db-shm
+*.db-wal
+.env
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs / Celery
+*.log
+celerybeat-schedule
+celerybeat.pid
+
+# Relatórios gerados
+reports/

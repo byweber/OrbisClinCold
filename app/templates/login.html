@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login — OrbisClin Cold</title>
+  <script>tailwind.config={theme:{extend:{colors:{orbis:"#0E2F66",ccf:"#0891B2",ccflight:"#06B6D4"}}}}</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-full bg-orbis flex items-center justify-center p-4">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <p class="text-ccf font-bold text-xs tracking-widest uppercase">OrbisClin</p>
+      <h1 class="text-white font-extrabold text-3xl mt-1">Cold</h1>
+      <p class="text-slate-400 text-xs tracking-widest uppercase mt-1">Cold Chain Monitoring</p>
+    </div>
+    <form method="post" action="/auth/login"
+          class="bg-slate-800/60 border border-slate-700 rounded-2xl p-7 shadow-2xl">
+      {% if erro %}
+      <div class="bg-red-900/40 border border-red-700 text-red-300 text-sm px-3 py-2.5 rounded-lg mb-5">{{ erro }}</div>
+      {% endif %}
+      <div class="mb-4">
+        <label class="block text-slate-300 text-xs font-semibold mb-1.5 uppercase tracking-wide">Usuário</label>
+        <input name="username" type="text" required autofocus
+               class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-3.5 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-ccf">
+      </div>
+      <div class="mb-6">
+        <label class="block text-slate-300 text-xs font-semibold mb-1.5 uppercase tracking-wide">Senha</label>
+        <input name="password" type="password" required
+               class="w-full bg-slate-900/60 border border-slate-600 rounded-lg px-3.5 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-ccf">
+      </div>
+      <button type="submit"
+              class="w-full bg-ccf hover:bg-ccflight text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">
+        Entrar
+      </button>
+    </form>
+    <p class="text-center text-slate-600 text-xs mt-6">RDC 430/2020 ANVISA</p>
+  </div>
+</body>
+</html>

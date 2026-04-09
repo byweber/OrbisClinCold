@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if sensor else 'Novo' }} Sensor{% endblock %}
+{% block page_title %}{{ 'Editar' if sensor else 'Novo' }} Sensor{% endblock %}
+{% block nav_sensores %}active{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+<a href="/sensores/" class="inline-flex items-center gap-1 text-slate-500 hover:text-ccf text-sm mb-5 transition-colors">← Voltar</a><div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+  <div class="h-1.5 bg-gradient-to-r from-ccf to-ccflight"></div>
+  <div class="px-6 py-7">{% if erro %}<div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-5">{{ erro }}</div>{% endif %}
+    <h2 class="font-bold text-slate-800 text-lg mb-6">{{ 'Editar Sensor' if sensor else 'Novo Sensor' }}</h2>
+    <form method="post" action="{{ '/sensores/'+sensor.id|string+'/editar' if sensor else '/sensores/novo' }}">
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="field-label">Equipamento <span class="text-red-500">*</span></label>
+          <select name="equipamento_id" required class="field-input">
+            <option value="">— Selecione —</option>
+            {% for e in equipamentos %}<option value="{{ e.id }}" {{ 'selected' if sensor and sensor.equipamento_id==e.id }}>{{ e.nome }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Nome</label>
+          <input name="nome" type="text" value="{{ sensor.nome if sensor and sensor.nome else '' }}" class="field-input" placeholder="Ex.: Canal 1">
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="field-label">Protocolo <span class="text-red-500">*</span></label>
+        <div class="flex gap-2">
+          {% for p in protocolos %}
+          <label class="flex-1 cursor-pointer">
+            <input type="radio" name="protocolo" value="{{ p }}" class="sr-only peer"
+              {{ 'checked' if (sensor and sensor.protocolo==p) or (not sensor and loop.first) }}
+              onchange="onProto('{{ p }}')">
+            <div class="text-center py-2.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-500 transition-all peer-checked:bg-ccf peer-checked:text-white peer-checked:border-ccf hover:border-ccf">{{ p }}</div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="field-label">Endereço <span class="text-red-500">*</span> <span id="hint" class="normal-case font-normal text-slate-400 text-xs"></span></label>
+        <input name="endereco" type="text" required value="{{ sensor.endereco if sensor else '' }}" class="field-input font-mono" placeholder="192.168.1.100:502">
+      </div>
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="field-label mb-0">Config JSON</label>
+          <button type="button" onclick="loadCfg()" class="text-xs text-ccf hover:underline">Carregar padrão</button>
+        </div>
+        <textarea name="config_json_raw" rows="6" class="field-input font-mono text-xs resize-y"
+          placeholder='{"slave_id": 1, "reg_temp": 16, ...}'>{{ sensor.config_json | tojson(indent=2) if sensor and sensor.config_json else '' }}</textarea>
+      </div>
+<div class="flex gap-3 mt-6">
+      <button type="submit" class="flex-1 bg-ccf hover:bg-ccflight text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">{{ 'Salvar' if sensor else 'Criar Sensor' }}</button>
+      <a href="/sensores/" class="px-4 py-2.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-colors">Cancelar</a>
+    </div>
+    </form>
+  </div>
+</div>
+<script>
+const HINTS={'MODBUS':'IP:porta — ex: 192.168.1.100:502','MQTT':'broker host — ex: 192.168.1.10','HTTP':'URL — ex: http://sensor.local/api'};
+const DEFS={{ config_defaults | tojson }};
+let proto=document.querySelector('input[name="protocolo"]:checked')?.value||'MODBUS';
+function onProto(p){proto=p;document.getElementById('hint').textContent=HINTS[p]||'';}
+async function loadCfg(){try{const r=await fetch('/sensores/api/config-default/'+proto);const d=await r.json();document.querySelector('[name="config_json_raw"]').value=JSON.stringify(d,null,2);}catch(_){}}
+onProto(proto);
+</script>
+{% endblock %}

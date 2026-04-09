@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Relatórios{% endblock %}
+{% block page_title %}Relatórios de Conformidade{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+
+  {% set _er = request.query_params.get('erro') %}
+  {% if _er %}
+  <div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5"
+       x-data x-init="setTimeout(()=>$el.remove(),6000)">
+    ✗ {{ _er | replace('+', ' ') }}
+  </div>
+  {% endif %}
+
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="h-1.5 bg-gradient-to-r from-ccf to-ccflight"></div>
+    <div class="px-6 py-7">
+
+      <h2 class="font-bold text-slate-800 text-lg mb-1">Gerar Relatório PDF</h2>
+      <p class="text-slate-500 text-sm mb-6">
+        Relatório de conformidade por equipamento — RDC 430/2020 ANVISA.
+        O PDF inclui histórico de leituras, alertas e estatísticas do período.
+      </p>
+
+      <form method="post" action="/relatorios/gerar">
+
+        <!-- Equipamento -->
+        <div class="mb-4">
+          <label class="field-label">Equipamento <span class="text-red-500">*</span></label>
+          <select name="equipamento_id" required class="field-input">
+            <option value="">— Selecione o equipamento —</option>
+            {% for e in equipamentos %}
+            <option value="{{ e.id }}">
+              {{ e.nome }}
+              {% if e.setor %} · {{ e.setor.nome }}{% endif %}
+              ({{ e.tipo | replace('_', ' ') }})
+            </option>
+            {% endfor %}
+          </select>
+          {% if not equipamentos %}
+          <p class="text-xs text-amber-600 mt-1">Nenhum equipamento ativo disponível.</p>
+          {% endif %}
+        </div>
+
+        <!-- Período -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <label class="field-label">Data início <span class="text-red-500">*</span></label>
+            <input name="data_inicio" type="date" required
+                   value="{{ data_inicio_default }}"
+                   class="field-input">
+          </div>
+          <div>
+            <label class="field-label">Data fim <span class="text-red-500">*</span></label>
+            <input name="data_fim" type="date" required
+                   value="{{ data_fim_default }}"
+                   class="field-input">
+          </div>
+        </div>
+
+        <!-- Info box -->
+        <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-6 text-xs text-blue-800">
+          <strong>Sobre o relatório:</strong>
+          O PDF conterá identificação do equipamento, limites configurados,
+          KPIs de conformidade, histórico completo de leituras com indicação
+          de conformidade por linha, lista de alertas com duração e uma
+          declaração para assinatura do responsável técnico.
+          Máximo de 365 dias por relatório.
+        </div>
+
+        <button type="submit"
+                class="w-full bg-ccf hover:bg-ccflight text-white font-semibold
+                       py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                 a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Gerar e Baixar PDF
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Informação sobre WeasyPrint -->
+  <div class="mt-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-500">
+    <strong>Dependência:</strong> WeasyPrint precisa estar instalado e configurado.
+    No Windows, pode ser necessário instalar GTK+.
+    Consulte: <span class="font-mono">pip install weasyprint</span>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+/* ── Reset e tipografia ──────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Arial", "Helvetica Neue", sans-serif;
+  font-size: 9pt;
+  color: #1e293b;
+  background: #fff;
+}
+
+/* ── Layout de página ────────────────────────────────────────────── */
+@page {
+  size: A4 portrait;
+  margin: 18mm 14mm 22mm 14mm;
+
+  @top-center {
+    content: "OrbisClin Cold — Relatório de Conformidade · RDC 430/2020 ANVISA";
+    font-size: 7pt;
+    color: #94a3b8;
+  }
+  @bottom-left {
+    content: "Gerado em {{ r.gerado_em | fmt_dt }} por {{ r.gerado_por }}";
+    font-size: 7pt;
+    color: #94a3b8;
+  }
+  @bottom-right {
+    content: "Página " counter(page) " de " counter(pages);
+    font-size: 7pt;
+    color: #94a3b8;
+  }
+}
+
+/* ── Cabeçalho ───────────────────────────────────────────────────── */
+.header {
+  background: #0E2F66;
+  color: #fff;
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.header-title { font-size: 15pt; font-weight: 700; letter-spacing: .3px; }
+.header-sub   { font-size: 7pt; color: #94a3b8; margin-top: 3px; }
+.header-badge {
+  background: #0891B2;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 7.5pt;
+  font-weight: 700;
+  color: #fff;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Seção genérica ──────────────────────────────────────────────── */
+.section { margin-bottom: 14px; }
+.section-title {
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #0E2F66;
+  border-bottom: 1.5px solid #0891B2;
+  padding-bottom: 3px;
+  margin-bottom: 8px;
+}
+
+/* ── Grid de info ────────────────────────────────────────────────── */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.info-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 7px 9px;
+}
+.info-label { font-size: 6.5pt; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }
+.info-value { font-size: 9pt; font-weight: 600; color: #1e293b; margin-top: 2px; }
+
+/* ── Cards de KPI ────────────────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.kpi-card {
+  border-radius: 5px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.kpi-card.green  { background: #dcfce7; border: 1px solid #86efac; }
+.kpi-card.red    { background: #fee2e2; border: 1px solid #fca5a5; }
+.kpi-card.blue   { background: #dbeafe; border: 1px solid #93c5fd; }
+.kpi-card.amber  { background: #fef3c7; border: 1px solid #fcd34d; }
+.kpi-card.gray   { background: #f1f5f9; border: 1px solid #cbd5e1; }
+.kpi-number { font-size: 17pt; font-weight: 800; line-height: 1; }
+.kpi-label  { font-size: 6.5pt; color: #475569; margin-top: 3px; }
+.green  .kpi-number  { color: #16a34a; }
+.red    .kpi-number  { color: #dc2626; }
+.blue   .kpi-number  { color: #1d4ed8; }
+.amber  .kpi-number  { color: #92400e; }
+.gray   .kpi-number  { color: #475569; }
+
+/* ── Tabelas ─────────────────────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+thead th {
+  background: #0E2F66;
+  color: #fff;
+  padding: 5px 7px;
+  text-align: left;
+  font-size: 7pt;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+tbody tr:nth-child(even) { background: #f8fafc; }
+tbody tr.fora-range-temp { background: #fff1f2; }
+tbody tr.fora-range-umid { background: #fffbeb; }
+tbody tr.fora-ambos      { background: #fff1f2; }
+td { padding: 4px 7px; border-bottom: 1px solid #f1f5f9; }
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+.mono        { font-family: "Courier New", monospace; }
+.ok    { color: #16a34a; font-weight: 700; }
+.nok   { color: #dc2626; font-weight: 700; }
+.dim   { color: #94a3b8; }
+
+/* ── Alertas ─────────────────────────────────────────────────────── */
+.alerta-tipo {
+  display: inline-block;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-size: 7pt;
+  font-weight: 700;
+}
+.tipo-temp-alta  { background: #fee2e2; color: #dc2626; }
+.tipo-temp-baixa { background: #dbeafe; color: #1d4ed8; }
+.tipo-umid-alta  { background: #fef3c7; color: #92400e; }
+.tipo-umid-baixa { background: #ede9fe; color: #6d28d9; }
+.tipo-offline    { background: #f1f5f9; color: #475569; }
+
+/* ── Rodapé de assinatura ────────────────────────────────────────── */
+.assinatura {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+.assinatura-linha {
+  border-top: 1px solid #334155;
+  padding-top: 6px;
+  font-size: 7pt;
+  color: #475569;
+}
+
+/* ── Quebra de página ────────────────────────────────────────────── */
+.page-break { page-break-before: always; }
+.no-break   { page-break-inside: avoid; }
+
+/* ── Aviso sem dados ─────────────────────────────────────────────── */
+.sem-dados {
+  text-align: center;
+  padding: 20px;
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 8pt;
+  border: 1px dashed #e2e8f0;
+  border-radius: 4px;
+}
+</style>
+</head>
+<body>
+
+<!-- ── Cabeçalho ─────────────────────────────────────────────────────────── -->
+<div class="header">
+  <div>
+    <div class="header-title">OrbisClin Cold</div>
+    <div class="header-sub">Relatório de Conformidade da Cadeia Fria · RDC 430/2020 ANVISA</div>
+    <div class="header-sub" style="margin-top:6px; color:#e2e8f0">
+      Período: {{ r.data_inicio | fmt_date }} a {{ r.data_fim | fmt_date }}
+    </div>
+  </div>
+  <div class="header-badge">
+    CADEIA FRIA<br>MONITORAMENTO
+  </div>
+</div>
+
+<!-- ── Identificação do equipamento ──────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Identificação do Equipamento</div>
+  <div class="info-grid">
+    <div class="info-box">
+      <div class="info-label">Equipamento</div>
+      <div class="info-value">{{ r.equipamento_nome }}</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Tipo</div>
+      <div class="info-value">{{ r.equipamento_tipo | replace("_", " ") }}</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Setor</div>
+      <div class="info-value">{{ r.setor_nome }}</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Patrimônio</div>
+      <div class="info-value">{{ r.patrimonio or "—" }}</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Fabricante</div>
+      <div class="info-value">{{ r.fabricante or "—" }}</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Modelo</div>
+      <div class="info-value">{{ r.modelo or "—" }}</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Faixa Temperatura</div>
+      <div class="info-value">
+        {% if r.temp_min is not none and r.temp_max is not none %}
+          {{ r.temp_min | fmt_temp }} a {{ r.temp_max | fmt_temp }}
+        {% else %}—{% endif %}
+      </div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Faixa Umidade</div>
+      <div class="info-value">
+        {% if r.umid_min is not none and r.umid_max is not none %}
+          {{ r.umid_min | fmt_umid }} a {{ r.umid_max | fmt_umid }}
+        {% else %}—{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── KPIs de conformidade ───────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Resumo do Período</div>
+  <div class="kpi-grid">
+    <div class="kpi-card {% if r.stats_temp.conformidade >= 95 %}green{% else %}red{% endif %}">
+      <div class="kpi-number">{{ r.stats_temp.conformidade }}%</div>
+      <div class="kpi-label">Conformidade Temp.</div>
+    </div>
+    <div class="kpi-card gray">
+      <div class="kpi-number">{{ r.stats_temp.total }}</div>
+      <div class="kpi-label">Leituras Temp.</div>
+    </div>
+    <div class="kpi-card {% if r.stats_temp.nao_conformes == 0 %}green{% else %}red{% endif %}">
+      <div class="kpi-number">{{ r.stats_temp.nao_conformes }}</div>
+      <div class="kpi-label">Fora do Range</div>
+    </div>
+    <div class="kpi-card {% if r.total_alertas == 0 %}green{% else %}red{% endif %}">
+      <div class="kpi-number">{{ r.total_alertas }}</div>
+      <div class="kpi-label">Total Alertas</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-number">{{ r.alertas_offline }}</div>
+      <div class="kpi-label">Alertas Offline</div>
+    </div>
+  </div>
+
+  <!-- Estatísticas detalhadas -->
+  <table>
+    <thead>
+      <tr>
+        <th>Variável</th>
+        <th class="text-right">Mínima</th>
+        <th class="text-right">Média</th>
+        <th class="text-right">Máxima</th>
+        <th class="text-right">Leituras OK</th>
+        <th class="text-right">Fora Range</th>
+        <th class="text-right">Conformidade</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Temperatura</strong></td>
+        <td class="text-right mono">{{ r.stats_temp.minima | fmt_temp }}</td>
+        <td class="text-right mono">{{ r.stats_temp.media  | fmt_temp }}</td>
+        <td class="text-right mono">{{ r.stats_temp.maxima | fmt_temp }}</td>
+        <td class="text-right">{{ r.stats_temp.conformes }}</td>
+        <td class="text-right {% if r.stats_temp.nao_conformes > 0 %}nok{% else %}ok{% endif %}">
+          {{ r.stats_temp.nao_conformes }}
+        </td>
+        <td class="text-right {% if r.stats_temp.conformidade >= 95 %}ok{% else %}nok{% endif %}">
+          <strong>{{ r.stats_temp.conformidade }}%</strong>
+        </td>
+      </tr>
+      {% if r.stats_umid.total > 0 %}
+      <tr>
+        <td><strong>Umidade Relativa</strong></td>
+        <td class="text-right mono">{{ r.stats_umid.minima | fmt_umid }}</td>
+        <td class="text-right mono">{{ r.stats_umid.media  | fmt_umid }}</td>
+        <td class="text-right mono">{{ r.stats_umid.maxima | fmt_umid }}</td>
+        <td class="text-right">{{ r.stats_umid.conformes }}</td>
+        <td class="text-right {% if r.stats_umid.nao_conformes > 0 %}nok{% else %}ok{% endif %}">
+          {{ r.stats_umid.nao_conformes }}
+        </td>
+        <td class="text-right {% if r.stats_umid.conformidade >= 95 %}ok{% else %}nok{% endif %}">
+          <strong>{{ r.stats_umid.conformidade }}%</strong>
+        </td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ── Alertas do período ─────────────────────────────────────────────────── -->
+<div class="section no-break">
+  <div class="section-title">Alertas Registrados no Período ({{ r.total_alertas }})</div>
+  {% if r.alertas %}
+  <table>
+    <thead>
+      <tr>
+        <th>Tipo</th>
+        <th>Início</th>
+        <th>Fim</th>
+        <th class="text-right">Duração</th>
+        <th class="text-right">Valor</th>
+        <th class="text-right">Limite</th>
+        <th>Reconhecido por</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in r.alertas %}
+      <tr>
+        <td>
+          <span class="alerta-tipo tipo-{{ a.tipo | lower | replace('_', '-') }}">
+            {{ a.tipo | replace("_", " ") }}
+          </span>
+        </td>
+        <td class="mono">{{ a.inicio | fmt_dt }}</td>
+        <td class="mono">{{ a.fim    | fmt_dt }}</td>
+        <td class="text-right">
+          {% if a.duracao_min is not none %}
+            {% if a.duracao_min < 60 %}{{ a.duracao_min }}min
+            {% else %}{{ (a.duracao_min / 60) | round(1) }}h{% endif %}
+          {% else %}<span class="nok">Ativo</span>{% endif %}
+        </td>
+        <td class="text-right mono">
+          {% if a.valor_registrado is not none %}
+            {{ a.valor_registrado | round(1) }}{{ "°C" if "TEMP" in a.tipo else "%" if "UMID" in a.tipo else "" }}
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-right mono">
+          {% if a.valor_limite is not none %}
+            {{ a.valor_limite | round(1) }}{{ "°C" if "TEMP" in a.tipo else "%" if "UMID" in a.tipo else "" }}
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ a.reconhecido_por or '<span class="dim">Pendente</span>' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="sem-dados">Nenhum alerta registrado no período.</div>
+  {% endif %}
+</div>
+
+<!-- ── Histórico de leituras ──────────────────────────────────────────────── -->
+<div class="section page-break">
+  <div class="section-title">
+    Histórico de Leituras — {{ r.leituras | length }} registros
+    {% if r.leituras | length >= 2000 %}
+    <span style="font-weight:400;color:#dc2626;font-size:7pt">
+      (amostra — período longo)
+    </span>
+    {% endif %}
+  </div>
+  {% if r.leituras %}
+  <table>
+    <thead>
+      <tr>
+        <th>Data/Hora</th>
+        <th class="text-right">Temperatura</th>
+        <th class="text-center">Temp. OK?</th>
+        <th class="text-right">Umidade</th>
+        <th class="text-center">Umid. OK?</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in r.leituras %}
+      <tr class="
+        {% if not l.temp_ok and not l.umid_ok %}fora-ambos
+        {% elif not l.temp_ok %}fora-range-temp
+        {% elif not l.umid_ok %}fora-range-umid
+        {% endif %}">
+        <td class="mono">{{ l.timestamp | fmt_dt }}</td>
+        <td class="text-right mono">{{ l.temperatura | fmt_temp }}</td>
+        <td class="text-center">
+          {% if l.temperatura is none %}<span class="dim">—</span>
+          {% elif l.temp_ok %}<span class="ok">✓</span>
+          {% else %}<span class="nok">✗</span>{% endif %}
+        </td>
+        <td class="text-right mono">{{ l.umidade | fmt_umid }}</td>
+        <td class="text-center">
+          {% if l.umidade is none %}<span class="dim">—</span>
+          {% elif l.umid_ok %}<span class="ok">✓</span>
+          {% else %}<span class="nok">✗</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="sem-dados">Nenhuma leitura registrada no período.</div>
+  {% endif %}
+</div>
+
+<!-- ── Declaração e assinatura ───────────────────────────────────────────── -->
+<div class="section no-break">
+  <div class="section-title">Declaração de Conformidade</div>
+  <p style="font-size:8pt;color:#475569;line-height:1.6;margin-bottom:16px">
+    Este relatório foi gerado automaticamente pelo sistema OrbisClin Cold em
+    {{ r.gerado_em | fmt_dt }} (UTC) e reflete os dados de monitoramento contínuo
+    registrados no período indicado. As temperaturas e umidades foram verificadas
+    em conformidade com os limites estabelecidos pela <strong>RDC 430/2020 ANVISA</strong>
+    e com os parâmetros configurados para este equipamento.
+  </p>
+
+  <div class="assinatura">
+    <div>
+      <div class="assinatura-linha">
+        Responsável técnico pela emissão<br>
+        <strong>{{ r.gerado_por }}</strong>
+      </div>
+    </div>
+    <div>
+      <div class="assinatura-linha">
+        Farmacêutico / Responsável pelo setor<br>
+        &nbsp;
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

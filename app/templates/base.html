@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}OrbisClin Cold{% endblock %}</title>
+  <script>tailwind.config={theme:{extend:{colors:{orbis:"#0E2F66",orbislight:"#1A4FA0",ccf:"#0891B2",ccflight:"#06B6D4"}}}}</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .nav-link{display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;border-radius:.375rem;
+      color:#94a3b8;font-size:.875rem;text-decoration:none;transition:all .15s}
+    .nav-link:hover,.nav-link.active{background-color:#1A4FA0;color:#fff}
+    .nav-link.active{color:#06B6D4;font-weight:600}
+    .th{padding:.7rem 1rem;text-align:left;font-size:.7rem;font-weight:600;
+        text-transform:uppercase;letter-spacing:.05em;color:#64748b}
+    .td{padding:.7rem 1rem;color:#334155}
+    .badge-green{display:inline-flex;padding:.2rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:#dcfce7;color:#16a34a}
+    .badge-red{display:inline-flex;padding:.2rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:#fee2e2;color:#dc2626}
+    .badge-gray{display:inline-flex;padding:.2rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:#f1f5f9;color:#64748b}
+    .btn-icon{display:inline-flex;padding:.375rem;border-radius:.375rem;color:#94a3b8;transition:all .15s}
+    .btn-icon:hover{background:#f1f5f9;color:#0891B2}
+    .field-label{display:block;font-size:.75rem;font-weight:600;text-transform:uppercase;
+      letter-spacing:.05em;color:#475569;margin-bottom:.375rem}
+    .field-input{width:100%;background:#f8fafc;border:1px solid #cbd5e1;border-radius:.5rem;
+      padding:.625rem .875rem;font-size:.875rem;color:#1e293b;outline:none;transition:all .15s}
+    .field-input:focus{border-color:#0891B2;box-shadow:0 0 0 3px rgba(8,145,178,.15)}
+    select.field-input{cursor:pointer}
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full bg-slate-50" x-data="{sb:false}">
+<div class="flex h-full">
+
+  {% if current_user %}
+  <aside class="fixed inset-y-0 left-0 z-40 w-60 bg-orbis flex flex-col
+                transform transition-transform lg:relative lg:translate-x-0"
+         :class="sb?'translate-x-0':'-translate-x-full'">
+    <div class="px-5 py-5 border-b border-orbislight">
+      <p class="text-ccf font-bold text-xs tracking-widest uppercase">OrbisClin</p>
+      <p class="text-white font-extrabold text-lg">Cold</p>
+      <p class="text-slate-500 text-[10px] uppercase tracking-widest">Cold Chain Monitoring</p>
+    </div>
+    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <a href="/"           class="nav-link {% block nav_home %}{% endblock %}">Dashboard</a>
+      <a href="/alertas/"   class="nav-link {% block nav_alertas %}{% endblock %}">
+        Alertas
+        {% if alertas_ativos is defined and alertas_ativos > 0 %}
+        <span class="ml-auto bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ alertas_ativos }}</span>
+        {% endif %}
+      </a>
+      {% if current_user.role == 'ADMIN' %}
+      <div class="pt-3 pb-1 px-2"><span class="text-slate-500 text-[10px] uppercase tracking-widest">Admin</span></div>
+      <a href="/setores/"      class="nav-link {% block nav_setores %}{% endblock %}">Setores</a>
+      <a href="/equipamentos/" class="nav-link {% block nav_equip %}{% endblock %}">Equipamentos</a>
+      <a href="/sensores/"     class="nav-link {% block nav_sensores %}{% endblock %}">Sensores</a>
+      {% endif %}
+    </nav>
+    <div class="border-t border-orbislight px-4 py-4">
+      <p class="text-white text-sm font-medium">{{ current_user.nome_completo or current_user.username }}</p>
+      <p class="text-slate-400 text-xs mb-3">{{ current_user.role }}</p>
+      <form method="post" action="/auth/logout">
+        <button class="text-slate-400 hover:text-white text-xs transition-colors">Sair →</button>
+      </form>
+    </div>
+  </aside>
+  <div x-show="sb" @click="sb=false" class="fixed inset-0 z-30 bg-black/50 lg:hidden" x-transition.opacity></div>
+  {% endif %}
+
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    {% if current_user %}
+    <header class="bg-orbis border-b border-orbislight px-4 py-3 flex items-center gap-4">
+      <button @click="sb=true" class="lg:hidden text-slate-300 hover:text-white">☰</button>
+      <h1 class="text-white font-semibold text-sm flex-1">{% block page_title %}{% endblock %}</h1>
+      {% if alertas_ativos is defined and alertas_ativos > 0 %}
+      <a href="/alertas/" class="text-red-400 text-xs font-semibold animate-pulse">{{ alertas_ativos }} alerta(s) ativo(s)</a>
+      {% endif %}
+      <a href="/auth/trocar-senha" class="text-slate-400 hover:text-ccflight text-xs transition-colors">Trocar senha</a>
+    </header>
+    {% endif %}
+    <main class="flex-1 overflow-y-auto p-4 lg:p-6">
+      {% with msgs = get_flashed_messages(with_categories=true) if get_flashed_messages is defined else [] %}{% endwith %}
+
+      {% set ok_msg  = request.query_params.get('ok')   if request is defined else none %}
+      {% set err_msg = request.query_params.get('erro')  if request is defined else none %}
+      {% if ok_msg %}
+      <div class="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-xl mb-5"
+           x-data x-init="setTimeout(()=>$el.remove(),4000)">
+        ✓ {% if ok_msg=='criado' %}Criado com sucesso.{% elif ok_msg=='atualizado' %}Atualizado com sucesso.{% elif ok_msg=='desativado' %}Desativado.{% elif ok_msg=='ativado' %}Reativado.{% elif ok_msg=='reconhecido' %}Alerta reconhecido.{% else %}{{ ok_msg }}{% endif %}
+      </div>
+      {% endif %}
+      {% if err_msg %}
+      <div class="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5"
+           x-data x-init="setTimeout(()=>$el.remove(),6000)">
+        ✗ {{ err_msg | replace('+', ' ') }}
+      </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

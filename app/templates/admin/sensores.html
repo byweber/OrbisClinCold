@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Sensores{% endblock %}{% block page_title %}Sensores{% endblock %}{% block nav_sensores %}active{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  <div class="flex items-center justify-between mb-5">
+    <h2 class="text-slate-800 font-bold text-xl">Sensores</h2>
+    <a href="/sensores/novo" class="bg-ccf hover:bg-ccflight text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors">+ Novo</a>
+  </div>
+{% set _ok=request.query_params.get('ok') %}{% set _er=request.query_params.get('erro') %}
+{% if _ok %}<div class="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-xl mb-5" x-data x-init="setTimeout(()=>$el.remove(),4000)">✓ {% if _ok=='criado' %}Criado.{% elif _ok=='atualizado' %}Atualizado.{% elif _ok=='desativado' %}Desativado.{% elif _ok=='ativado' %}Reativado.{% else %}{{ _ok }}{% endif %}</div>{% endif %}
+{% if _er %}<div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5" x-data x-init="setTimeout(()=>$el.remove(),6000)">✗ {{ _er|replace('+',' ') }}</div>{% endif %}
+  <div class="mb-4"><form method="get" action="/sensores/">
+    <select name="equipamento_id" onchange="this.form.submit()" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-ccf">
+      <option value="">Todos os equipamentos</option>
+      {% for e in equipamentos %}<option value="{{ e.id }}" {{ 'selected' if equipamento_id_filtro==e.id }}>{{ e.nome }}</option>{% endfor %}
+    </select>
+  </form></div>
+  {% if sensores %}
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <table class="w-full text-sm"><thead class="bg-slate-50 border-b border-slate-200">
+      <tr><th class="th">Sensor</th><th class="th">Equipamento</th><th class="th">Protocolo</th><th class="th">Endereço</th><th class="th text-center">Último sinal</th><th class="th text-center">Status</th><th class="th"></th></tr>
+    </thead><tbody class="divide-y divide-slate-100">
+      {% for s in sensores %}
+      <tr class="hover:bg-slate-50">
+        <td class="td font-medium">{{ s.nome or 'Sensor #'+s.id|string }}</td>
+        <td class="td text-slate-600">{{ s.equipamento.nome if s.equipamento else '—' }}</td>
+        <td class="td"><span class="px-2 py-0.5 rounded text-xs font-bold {% if s.protocolo=='MODBUS' %}bg-yellow-100 text-yellow-800{% elif s.protocolo=='MQTT' %}bg-purple-100 text-purple-800{% else %}bg-green-100 text-green-800{% endif %}">{{ s.protocolo }}</span></td>
+        <td class="td font-mono text-xs text-slate-500">{{ s.endereco }}</td>
+        <td class="td text-center text-xs text-slate-500">{% if s.ultimo_sinal %}{{ s.ultimo_sinal.strftime('%d/%m %H:%M') }}{% else %}<span class="text-slate-300">Nunca</span>{% endif %}</td>
+        <td class="td text-center">
+          {% if not s.is_active %}<span class="badge-gray">Inativo</span>
+          {% elif s._status=='online' %}<span class="badge-green">Online</span>
+          {% elif s._status=='offline' %}<span class="badge-red">Offline</span>
+          {% else %}<span class="badge-gray">Aguardando</span>{% endif %}
+        </td>
+        <td class="td"><div class="flex justify-end gap-1.5">
+          {% if s.is_active %}
+          <button onclick="testar({{ s.id }},this)" class="btn-icon text-ccf" title="Testar">⚡</button>
+          {% endif %}
+          <a href="/sensores/{{ s.id }}/editar" class="btn-icon">✏️</a>
+          {% if s.is_active %}
+          <form method="post" action="/sensores/{{ s.id }}/desativar" onsubmit="return confirm('Desativar?')"><button class="btn-icon text-red-400">✗</button></form>
+          {% else %}
+          <form method="post" action="/sensores/{{ s.id }}/ativar"><button class="btn-icon text-green-500">✓</button></form>
+          {% endif %}
+        </div></td>
+      </tr>
+      <tr id="tr-{{ s.id }}" class="hidden">
+        <td colspan="7" class="px-4 py-2"><div id="msg-{{ s.id }}" class="text-xs px-3 py-2 rounded-lg"></div></td>
+      </tr>
+      {% endfor %}
+    </tbody></table>
+  </div>
+  {% else %}
+  <div class="bg-white border border-dashed border-slate-300 rounded-2xl p-16 text-center">
+    <p class="text-slate-400 text-sm">Nenhum sensor cadastrado.</p>
+    <a href="/sensores/novo" class="text-ccf text-sm hover:underline mt-2 inline-block">Cadastrar →</a>
+  </div>
+  {% endif %}
+</div>
+<script>
+async function testar(id,btn){
+  const tr=document.getElementById('tr-'+id),msg=document.getElementById('msg-'+id);
+  btn.disabled=true;msg.className='text-xs px-3 py-2 rounded-lg bg-slate-100 text-slate-600';
+  msg.textContent='Testando...';tr.classList.remove('hidden');
+  try{const r=await fetch('/sensores/'+id+'/testar',{method:'POST'});const d=await r.json();
+    msg.className='text-xs px-3 py-2 rounded-lg '+(d.sucesso?'bg-green-50 text-green-700':'bg-red-50 text-red-700');
+    msg.textContent=(d.sucesso?'✓ ':'✗ ')+d.mensagem;}
+  catch(e){msg.className='text-xs px-3 py-2 rounded-lg bg-red-50 text-red-700';msg.textContent='✗ '+e.message;}
+  finally{btn.disabled=false;setTimeout(()=>tr.classList.add('hidden'),8000);}
+}
+</script>
+{% endblock %}

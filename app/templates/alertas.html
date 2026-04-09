@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Alertas{% endblock %}
+{% block page_title %}Alertas{% endblock %}
+{% block nav_alertas %}active{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h2 class="text-slate-800 font-bold text-xl">Alertas</h2>
+      {% if alertas_ativos %}<p class="text-red-600 text-sm font-semibold">{{ alertas_ativos }} ativo(s)</p>{% endif %}
+    </div>
+    <div class="flex gap-2">
+      <a href="/alertas/" class="text-sm px-4 py-2 rounded-lg font-medium {% if not historico %}bg-ccf text-white{% else %}bg-white border border-slate-200 text-slate-600{% endif %}">Ativos</a>
+      <a href="/alertas/?historico=true" class="text-sm px-4 py-2 rounded-lg font-medium {% if historico %}bg-ccf text-white{% else %}bg-white border border-slate-200 text-slate-600{% endif %}">Histórico</a>
+    </div>
+  </div>
+
+  <div class="mb-4 flex flex-wrap gap-2">
+    <a href="{% if historico %}/alertas/?historico=true{% else %}/alertas/{% endif %}" class="text-xs px-3 py-1 rounded-full border {% if not tipo_filtro %}bg-ccf text-white border-ccf{% else %}bg-white border-slate-200 text-slate-600{% endif %}">Todos</a>
+    {% for t in tipos_alerta %}
+    <a href="{% if historico %}/alertas/?historico=true&tipo={{ t }}{% else %}/alertas/?tipo={{ t }}{% endif %}" class="text-xs px-3 py-1 rounded-full border {% if tipo_filtro==t %}bg-ccf text-white border-ccf{% else %}bg-white border-slate-200 text-slate-600{% endif %}">{{ t|replace('_',' ') }}</a>
+    {% endfor %}
+  </div>
+
+  {% if not historico %}
+  {% if ativos %}
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200">
+        <tr><th class="th">Tipo</th><th class="th">Equipamento</th><th class="th text-center">Valor</th><th class="th">Início</th><th class="th">Reconhecido</th><th class="th"></th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for a in ativos %}
+        <tr class="hover:bg-slate-50">
+          <td class="td"><span class="px-2 py-0.5 rounded text-xs font-bold {% if 'ALTA' in a.tipo or a.tipo=='OFFLINE' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">{{ a.tipo|replace('_',' ') }}</span></td>
+          <td class="td"><p class="font-medium">{{ a.equipamento.nome if a.equipamento else '—' }}</p><p class="text-slate-400 text-xs">{{ a.equipamento.setor.nome if a.equipamento and a.equipamento.setor else '' }}</p></td>
+          <td class="td text-center font-mono text-xs">{% if a.valor_registrado is not none %}{{ "%.1f"|format(a.valor_registrado) }}{{ '°C' if 'TEMP' in a.tipo else '%' }}{% else %}—{% endif %}</td>
+          <td class="td text-xs text-slate-500">{{ a.inicio_at.strftime('%d/%m %H:%M') }}</td>
+          <td class="td text-xs">{% if a.reconhecido_por %}<span class="text-green-600">✓ {{ a.reconhecido_por }}</span>{% else %}<span class="text-slate-300">Pendente</span>{% endif %}</td>
+          <td class="td">
+            {% if not a.reconhecido_por and current_user.role in ['ADMIN','OPERADOR'] %}
+            <form method="post" action="/alertas/{{ a.id }}/reconhecer">
+              <button class="bg-ccf hover:bg-ccflight text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">Reconhecer</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="bg-white border border-dashed border-slate-200 rounded-2xl p-16 text-center">
+    <p class="text-green-500 text-3xl mb-2">✓</p>
+    <p class="text-slate-500 font-medium">Nenhum alerta ativo</p>
+  </div>
+  {% endif %}
+
+  {% else %}
+  {% if historico_list %}
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200">
+        <tr><th class="th">Tipo</th><th class="th">Equipamento</th><th class="th">Início</th><th class="th">Duração</th><th class="th">Reconhecido</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for a in historico_list %}
+        {% set secs = ((a.fim_at - a.inicio_at).total_seconds()|int) %}
+        <tr class="hover:bg-slate-50">
+          <td class="td"><span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600">{{ a.tipo|replace('_',' ') }}</span></td>
+          <td class="td font-medium">{{ a.equipamento.nome if a.equipamento else '—' }}</td>
+          <td class="td text-xs text-slate-500">{{ a.inicio_at.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td class="td text-xs text-slate-500">{% if secs<60 %}{{ secs }}s{% elif secs<3600 %}{{ secs//60 }}min{% else %}{{ secs//3600 }}h {{ (secs%3600)//60 }}min{% endif %}</td>
+          <td class="td text-xs">{% if a.reconhecido_por %}<span class="text-green-600">{{ a.reconhecido_por }}</span>{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if total_paginas > 1 %}
+  <div class="flex justify-center gap-2 mt-5">
+    {% for p in range(1,total_paginas+1) %}
+    <a href="/alertas/?historico=true{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}&pagina={{ p }}"
+       class="px-3 py-1.5 rounded-lg text-sm border {% if p==pagina %}bg-ccf text-white border-ccf{% else %}bg-white border-slate-200 text-slate-600{% endif %}">{{ p }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="bg-white border border-dashed border-slate-200 rounded-2xl p-12 text-center">
+    <p class="text-slate-400 text-sm">Nenhum alerta no histórico.</p>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

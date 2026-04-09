@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Equipamentos{% endblock %}{% block page_title %}Equipamentos{% endblock %}{% block nav_equip %}active{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto" x-data="{modal:null,motivo:''}">
+  <div class="flex items-center justify-between mb-5">
+    <h2 class="text-slate-800 font-bold text-xl">Equipamentos</h2>
+    <a href="/equipamentos/novo" class="bg-ccf hover:bg-ccflight text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors">+ Novo</a>
+  </div>
+{% set _ok=request.query_params.get('ok') %}{% set _er=request.query_params.get('erro') %}
+{% if _ok %}<div class="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-xl mb-5" x-data x-init="setTimeout(()=>$el.remove(),4000)">✓ {% if _ok=='criado' %}Criado.{% elif _ok=='atualizado' %}Atualizado.{% elif _ok=='desativado' %}Desativado.{% elif _ok=='ativado' %}Reativado.{% else %}{{ _ok }}{% endif %}</div>{% endif %}
+{% if _er %}<div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5" x-data x-init="setTimeout(()=>$el.remove(),6000)">✗ {{ _er|replace('+',' ') }}</div>{% endif %}
+  <div class="mb-4"><form method="get" action="/equipamentos/">
+    <select name="setor_id" onchange="this.form.submit()" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-ccf">
+      <option value="">Todos os setores</option>
+      {% for s in setores %}<option value="{{ s.id }}" {{ 'selected' if setor_id_filtro==s.id }}>{{ s.nome }}</option>{% endfor %}
+    </select>
+  </form></div>
+  {% if equipamentos %}
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <table class="w-full text-sm"><thead class="bg-slate-50 border-b border-slate-200">
+      <tr><th class="th">Equipamento</th><th class="th">Tipo</th><th class="th">Setor</th><th class="th text-center">Temp.</th><th class="th text-center">Sensores</th><th class="th text-center">Status</th><th class="th"></th></tr>
+    </thead><tbody class="divide-y divide-slate-100">
+      {% for e in equipamentos %}
+      <tr class="hover:bg-slate-50">
+        <td class="td"><p class="font-semibold">{{ e.nome }}</p>{% if e.patrimonio %}<p class="text-slate-400 text-xs">Pat. {{ e.patrimonio }}</p>{% endif %}</td>
+        <td class="td"><span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-semibold">{{ e.tipo|replace('_',' ') }}</span></td>
+        <td class="td text-slate-600">{{ e.setor.nome if e.setor else '—' }}</td>
+        <td class="td text-center text-xs text-slate-600">{% if e.temp_min is not none and e.temp_max is not none %}{{ "%.1f"|format(e.temp_min) }}–{{ "%.1f"|format(e.temp_max) }}°C{% else %}—{% endif %}</td>
+        <td class="td text-center"><a href="/sensores/?equipamento_id={{ e.id }}" class="text-ccf hover:underline">{{ e._sensor_count }}</a></td>
+        <td class="td text-center">{% if e.is_active %}<span class="badge-green">Ativo</span>{% else %}<span class="badge-red" title="{{ e.motivo_inativacao }}">Inativo</span>{% endif %}</td>
+        <td class="td"><div class="flex justify-end gap-2">
+          <a href="/equipamentos/{{ e.id }}/editar" class="btn-icon">✏️</a>
+          {% if e.is_active %}
+          <button @click="modal={{ e.id }}" class="btn-icon text-red-400">✗</button>
+          {% else %}
+          <form method="post" action="/equipamentos/{{ e.id }}/ativar"><button class="btn-icon text-green-500">✓</button></form>
+          {% endif %}
+        </div></td>
+      </tr>
+      {% endfor %}
+    </tbody></table>
+  </div>
+  {% else %}
+  <div class="bg-white border border-dashed border-slate-300 rounded-2xl p-16 text-center">
+    <p class="text-slate-400 text-sm">Nenhum equipamento cadastrado.</p>
+    <a href="/equipamentos/novo" class="text-ccf text-sm hover:underline mt-2 inline-block">Cadastrar →</a>
+  </div>
+  {% endif %}
+
+  <!-- Modal desativar -->
+  <div x-show="modal!==null" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" style="display:none">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" @click.stop>
+      <h3 class="font-bold text-slate-800 mb-3">Desativar Equipamento</h3>
+      <p class="text-slate-500 text-sm mb-3">Informe o motivo (obrigatório para auditoria).</p>
+      <textarea x-model="motivo" rows="3" class="field-input resize-none mb-4" placeholder="Ex.: manutenção, defeito..."></textarea>
+      <div class="flex gap-3">
+        <form :action="'/equipamentos/'+modal+'/desativar'" method="post" class="flex-1">
+          <input type="hidden" name="motivo" :value="motivo">
+          <button :disabled="!motivo.trim()" class="w-full bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-semibold py-2 rounded-lg text-sm">Desativar</button>
+        </form>
+        <button @click="modal=null;motivo=''" class="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
