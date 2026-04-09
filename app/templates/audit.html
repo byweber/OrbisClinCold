@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Audit Log{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto" x-data>
+
+  <!-- Cabeçalho -->
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h2 class="text-slate-800 font-bold text-xl">Audit Log</h2>
+      <p class="text-slate-500 text-sm mt-0.5">{{ total }} registro(s) encontrado(s)</p>
+    </div>
+    <!-- Exportar CSV com os filtros ativos -->
+    <a href="/audit/export?username={{ f_username }}&action={{ f_action }}&target={{ f_target }}&data_inicio={{ f_data_inicio }}&data_fim={{ f_data_fim }}"
+       class="inline-flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50
+              text-slate-600 font-semibold text-sm px-4 py-2 rounded-lg transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+      </svg>
+      Exportar CSV
+    </a>
+  </div>
+
+  <!-- Filtros -->
+  <form method="get" action="/audit/"
+        class="bg-white border border-slate-200 rounded-2xl px-5 py-4 mb-5 shadow-sm">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+      <div>
+        <label class="field-label">Usuário</label>
+        <input name="username" type="text" value="{{ f_username }}"
+               class="field-input" placeholder="admin">
+      </div>
+      <div>
+        <label class="field-label">Ação</label>
+        <select name="action" class="field-input">
+          <option value="">— Todas —</option>
+          {% for a in acoes_lista %}
+          <option value="{{ a }}" {{ 'selected' if f_action == a }}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Alvo</label>
+        <input name="target" type="text" value="{{ f_target }}"
+               class="field-input" placeholder="setor:1">
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit"
+                class="flex-1 bg-ccf hover:bg-ccflight text-white font-semibold
+                       py-2.5 rounded-lg text-sm transition-colors">
+          Filtrar
+        </button>
+        <a href="/audit/"
+           class="px-3 py-2.5 border border-slate-200 rounded-lg text-slate-500
+                  hover:bg-slate-50 text-sm transition-colors" title="Limpar filtros">
+          ✕
+        </a>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="field-label">Data início</label>
+        <input name="data_inicio" type="date" value="{{ f_data_inicio }}" class="field-input">
+      </div>
+      <div>
+        <label class="field-label">Data fim</label>
+        <input name="data_fim" type="date" value="{{ f_data_fim }}" class="field-input">
+      </div>
+    </div>
+  </form>
+
+  <!-- Tabela -->
+  {% if registros %}
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200">
+        <tr>
+          <th class="th w-36">Data/Hora</th>
+          <th class="th w-28">Usuário</th>
+          <th class="th w-36">Ação</th>
+          <th class="th w-36">Alvo</th>
+          <th class="th">Detalhes</th>
+          <th class="th w-28">IP</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for r in registros %}
+        <tr class="hover:bg-slate-50 cursor-pointer"
+            @click="$el.querySelector('td.details').classList.toggle('hidden')"
+            title="Clique para ver detalhes">
+          <td class="td font-mono text-xs text-slate-500 whitespace-nowrap">
+            {{ r.created_at.strftime('%d/%m/%Y') }}<br>
+            <span class="text-slate-400">{{ r.created_at.strftime('%H:%M:%S') }}</span>
+          </td>
+          <td class="td font-semibold text-slate-700">{{ r.username }}</td>
+          <td class="td">
+            {% set ac = r.action %}
+            <span class="px-2 py-0.5 rounded text-xs font-bold
+              {% if ac in ['LOGIN', 'LOGOUT'] %}bg-blue-100 text-blue-700
+              {% elif ac in ['CREATE'] %}bg-green-100 text-green-700
+              {% elif ac in ['UPDATE', 'PASSWORD_CHANGE'] %}bg-amber-100 text-amber-800
+              {% elif ac in ['DEACTIVATE', 'DELETE'] %}bg-red-100 text-red-700
+              {% elif ac == 'ALERTA_RECONHECIDO' %}bg-purple-100 text-purple-700
+              {% elif ac in ['TOTP_ENABLE', 'TOTP_DISABLE'] %}bg-indigo-100 text-indigo-700
+              {% elif ac in ['REPORT_GENERATE', 'EXPORT_CSV'] %}bg-teal-100 text-teal-700
+              {% else %}bg-slate-100 text-slate-600{% endif %}">
+              {{ ac | replace('_', ' ') }}
+            </span>
+          </td>
+          <td class="td text-slate-500 font-mono text-xs">{{ r.target or '—' }}</td>
+          <td class="td text-slate-500 text-xs truncate max-w-xs">
+            {% if r.details %}
+              {% for k, v in r.details.items() %}
+                <span class="bg-slate-100 rounded px-1 mr-1">{{ k }}: {{ v }}</span>
+              {% endfor %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="td font-mono text-xs text-slate-400">{{ r.ip_address or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação -->
+  {% if total_paginas > 1 %}
+  <div class="flex items-center justify-between mt-4">
+    <p class="text-slate-500 text-xs">
+      Página {{ pagina }} de {{ total_paginas }} ·
+      {{ por_pagina }} por página · {{ total }} total
+    </p>
+    <div class="flex gap-1.5">
+      {% if pagina > 1 %}
+      <a href="/audit/?pagina={{ pagina - 1 }}&username={{ f_username }}&action={{ f_action }}&target={{ f_target }}&data_inicio={{ f_data_inicio }}&data_fim={{ f_data_fim }}"
+         class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm hover:bg-slate-50">
+        ← Anterior
+      </a>
+      {% endif %}
+
+      {% for p in range([1, pagina - 2]|max, [total_paginas, pagina + 2]|min + 1) %}
+      <a href="/audit/?pagina={{ p }}&username={{ f_username }}&action={{ f_action }}&target={{ f_target }}&data_inicio={{ f_data_inicio }}&data_fim={{ f_data_fim }}"
+         class="px-3 py-1.5 rounded-lg border text-sm
+                {% if p == pagina %}bg-ccf text-white border-ccf{% else %}bg-white border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">
+        {{ p }}
+      </a>
+      {% endfor %}
+
+      {% if pagina < total_paginas %}
+      <a href="/audit/?pagina={{ pagina + 1 }}&username={{ f_username }}&action={{ f_action }}&target={{ f_target }}&data_inicio={{ f_data_inicio }}&data_fim={{ f_data_fim }}"
+         class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm hover:bg-slate-50">
+        Próxima →
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="bg-white border border-dashed border-slate-200 rounded-2xl p-16 text-center">
+    <p class="text-slate-400 text-sm">Nenhum registro encontrado com os filtros aplicados.</p>
+    <a href="/audit/" class="text-ccf text-sm hover:underline mt-2 inline-block">Limpar filtros →</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
