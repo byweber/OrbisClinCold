@@ -1,29 +1,36 @@
-# Core
-fastapi==0.115.11
+# ── Core web ───────────────────────────────────────────────────────────────────
+fastapi==0.135.3
 uvicorn[standard]==0.34.0
-pydantic==2.10.6
-pydantic-settings==2.7.1
-python-multipart==0.0.20
-jinja2==3.1.5
-python-dotenv==1.0.1
+jinja2==3.1.6
+python-multipart==0.0.24
+aiofiles==25.1.0
 
-# Database
-sqlalchemy==2.0.37
-alembic==1.14.1
+# ── ORM / Banco ────────────────────────────────────────────────────────────────
+sqlalchemy==2.0.49
+alembic==1.15.2
 
-# Security
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-fastapi-csrf-protect==0.3.2
+# ── Validação ─────────────────────────────────────────────────────────────────
+pydantic[email]==2.12.5
+pydantic-settings==2.9.1
 
-# Async & Tasks
-celery==5.4.0
-redis==5.2.1
+# ── Auth ───────────────────────────────────────────────────────────────────────
+# bcrypt 5.x direto — passlib 1.7.4 é incompatível com bcrypt>=4.0
+bcrypt==5.0.0
+python-jose[cryptography]==3.5.0
+pyotp==2.9.0
 
-# Hardware / IoT
-pymodbus==3.7.4
+# ── Workers ────────────────────────────────────────────────────────────────────
+celery==5.5.2
+redis==6.2.0
+
+# ── HTTP / Sensores ────────────────────────────────────────────────────────────
+httpx==0.28.1
+pymodbus==3.8.6
 paho-mqtt==2.1.0
-requests==2.32.3
 
-# Utilities
-python-dateutil==2.9.0.post0
+# ── PDF ────────────────────────────────────────────────────────────────────────
+# Windows: instalar GTK+ antes — https://weasyprint.readthedocs.io/en/stable/install.html#windows
+weasyprint==65.1
+
+# ── Testes ────────────────────────────────────────────────────────────────────
+pytest==8.3.5

@@ -1,42 +1,57 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{% if usuario %}Editar{% else %}Novo{% endif %} Usuário</title>
-</head>
-<body>
-    <h1>{% if usuario %}Editar{% else %}Novo{% endif %} Usuário</h1>
-    <form method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div>
-            <label>Username</label>
-            <input type="text" name="username" value="{{ usuario.username if usuario else '' }}" required>
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if usuario else 'Novo' }} Usuário{% endblock %}
+{% block page_title %}{{ 'Editar' if usuario else 'Novo' }} Usuário{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <a href="/usuarios/" class="inline-flex items-center gap-1 text-slate-500 hover:text-ccf text-sm mb-5 transition-colors">← Voltar para Usuários</a>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="h-1.5 bg-gradient-to-r from-ccf to-ccflight"></div>
+    <div class="px-6 py-7">
+      <h2 class="font-bold text-slate-800 text-lg mb-5">{{ 'Editar Usuário' if usuario else 'Novo Usuário' }}</h2>
+      {% if erro %}<div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-5">{{ erro }}</div>{% endif %}
+      <form method="post" action="{{ '/usuarios/'+usuario.id|string+'/editar' if usuario else '/usuarios/novo' }}">
+        {% if not usuario %}
+        <div class="mb-4">
+          <label class="field-label">Username <span class="text-red-500">*</span></label>
+          <input name="username" type="text" required autofocus class="field-input font-mono" placeholder="joao.silva">
+          <p class="text-xs text-slate-400 mt-1">Minúsculas, sem espaços. Uma senha temporária será gerada automaticamente.</p>
         </div>
-        <div>
-            <label>Email</label>
-            <input type="email" name="email" value="{{ usuario.email if usuario else '' }}" required>
+        {% endif %}
+        <div class="mb-4">
+          <label class="field-label">Nome Completo</label>
+          <input name="nome_completo" type="text" value="{{ usuario.nome_completo if usuario and usuario.nome_completo else '' }}" class="field-input" placeholder="Dr. João Silva">
         </div>
-        <div>
-            <label>Nome Completo</label>
-            <input type="text" name="nome_completo" value="{{ usuario.nome_completo if usuario else '' }}" required>
+        <div class="mb-4">
+          <label class="field-label">E-mail <span class="text-slate-400 font-normal normal-case">(para alertas)</span></label>
+          <input name="email" type="email" value="{{ usuario.email if usuario and usuario.email else '' }}" class="field-input" placeholder="joao@hospital.com.br">
         </div>
-        <div>
-            <label>Senha {% if usuario %}(deixe em branco para manter){% endif %}</label>
-            <input type="password" name="password" {% if not usuario %}required{% endif %}>
-        </div>
-        <div>
-            <label>Role</label>
-            <select name="role" required>
-                <option value="ADMIN" {% if usuario and usuario.role == 'ADMIN' %}selected{% endif %}>Administrador</option>
-                <option value="OPERADOR" {% if usuario and usuario.role == 'OPERADOR' %}selected{% endif %}>Operador</option>
-                <option value="VIEWER" {% if usuario and usuario.role == 'VIEWER' %}selected{% endif %}>Visualizador</option>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <label class="field-label">Role <span class="text-red-500">*</span></label>
+            <select name="role" class="field-input">
+              {% for r in roles %}
+              <option value="{{ r }}" {{ 'selected' if usuario and usuario.role==r }}>{{ r }}</option>
+              {% endfor %}
             </select>
+          </div>
+          <div>
+            <label class="field-label">Setor</label>
+            <select name="setor_id" class="field-input">
+              <option value="">— Todos —</option>
+              {% for s in setores %}
+              <option value="{{ s.id }}" {{ 'selected' if usuario and usuario.setor_id==s.id }}>{{ s.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
-        <div>
-            <label>Ativo</label>
-            <input type="checkbox" name="ativo" value="true" {% if usuario and usuario.ativo %}checked{% endif %}>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 bg-ccf hover:bg-ccflight text-white font-semibold py-2.5 rounded-lg text-sm">
+            {{ 'Salvar' if usuario else 'Criar Usuário' }}
+          </button>
+          <a href="/usuarios/" class="px-4 py-2.5 border border-slate-200 rounded-lg text-slate-600 text-sm hover:bg-slate-50">Cancelar</a>
         </div>
-        <button type="submit">Salvar</button>
-        <a href="/admin/usuarios">Cancelar</a>
-    </form>
-</body>
-</html>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

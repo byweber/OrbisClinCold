@@ -1,39 +1,67 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{% if equip %}Editar{% else %}Novo{% endif %} Equipamento</title>
-</head>
-<body>
-    <h1>{% if equip %}Editar{% else %}Novo{% endif %} Equipamento</h1>
-    <form method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if equipamento else 'Novo' }} Equipamento{% endblock %}
+{% block page_title %}{{ 'Editar' if equipamento else 'Novo' }} Equipamento{% endblock %}
+{% block nav_equip %}active{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+<a href="/equipamentos/" class="inline-flex items-center gap-1 text-slate-500 hover:text-ccf text-sm mb-5 transition-colors">← Voltar</a><div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+  <div class="h-1.5 bg-gradient-to-r from-ccf to-ccflight"></div>
+  <div class="px-6 py-7">{% if erro %}<div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-5">{{ erro }}</div>{% endif %}
+    <h2 class="font-bold text-slate-800 text-lg mb-6">{{ 'Editar Equipamento' if equipamento else 'Novo Equipamento' }}</h2>
+    <form method="post" action="{{ '/equipamentos/'+equipamento.id|string+'/editar' if equipamento else '/equipamentos/novo' }}">
+      <div class="grid grid-cols-2 gap-4 mb-4">
         <div>
-            <label>Nome</label>
-            <input type="text" name="nome" value="{{ equip.nome if equip else '' }}" required>
+          <label class="field-label">Setor <span class="text-red-500">*</span></label>
+          <select name="setor_id" required class="field-input">
+            <option value="">— Selecione —</option>
+            {% for s in setores %}<option value="{{ s.id }}" {{ 'selected' if equipamento and equipamento.setor_id==s.id }}>{{ s.nome }}</option>{% endfor %}
+          </select>
         </div>
         <div>
-            <label>Modelo</label>
-            <input type="text" name="modelo" value="{{ equip.modelo if equip else '' }}">
+          <label class="field-label">Tipo <span class="text-red-500">*</span></label>
+          <select name="tipo" required class="field-input" onchange="loadDefaults(this.value)">
+            <option value="">— Selecione —</option>
+            {% for t in tipos %}<option value="{{ t }}" {{ 'selected' if equipamento and equipamento.tipo==t }}>{{ t|replace('_',' ')|title }}</option>{% endfor %}
+          </select>
         </div>
-        <div>
-            <label>Fabricante</label>
-            <input type="text" name="fabricante" value="{{ equip.fabricante if equip else '' }}">
+      </div>
+      <div class="mb-4">
+        <label class="field-label">Nome <span class="text-red-500">*</span></label>
+        <input name="nome" type="text" required value="{{ equipamento.nome if equipamento else '' }}" class="field-input" placeholder="Ex.: Geladeira Farmácia A">
+      </div>
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div><label class="field-label">Patrimônio</label><input name="patrimonio" type="text" value="{{ equipamento.patrimonio if equipamento and equipamento.patrimonio else '' }}" class="field-input"></div>
+        <div><label class="field-label">Fabricante</label><input name="fabricante" type="text" value="{{ equipamento.fabricante if equipamento and equipamento.fabricante else '' }}" class="field-input"></div>
+        <div><label class="field-label">Modelo</label><input name="modelo" type="text" value="{{ equipamento.modelo if equipamento and equipamento.modelo else '' }}" class="field-input"></div>
+      </div>
+      <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
+        <p class="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3">Temperatura (°C) — RDC 430/2020</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="field-label">Mínima</label><input id="temp_min" name="temp_min" type="number" step="0.1" value="{{ '%.1f'|format(equipamento.temp_min) if equipamento and equipamento.temp_min is not none else '' }}" class="field-input" placeholder="ex: 2.0"></div>
+          <div><label class="field-label">Máxima</label><input id="temp_max" name="temp_max" type="number" step="0.1" value="{{ '%.1f'|format(equipamento.temp_max) if equipamento and equipamento.temp_max is not none else '' }}" class="field-input" placeholder="ex: 8.0"></div>
         </div>
-        <div>
-            <label>Número de Série</label>
-            <input type="text" name="numero_serie" value="{{ equip.numero_serie if equip else '' }}">
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
+        <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Umidade (%) — opcional</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="field-label">Mínima</label><input id="umid_min" name="umid_min" type="number" step="0.1" min="0" max="100" value="{{ '%.1f'|format(equipamento.umid_min) if equipamento and equipamento.umid_min is not none else '' }}" class="field-input" placeholder="ex: 40.0"></div>
+          <div><label class="field-label">Máxima</label><input id="umid_max" name="umid_max" type="number" step="0.1" min="0" max="100" value="{{ '%.1f'|format(equipamento.umid_max) if equipamento and equipamento.umid_max is not none else '' }}" class="field-input" placeholder="ex: 80.0"></div>
         </div>
-        <div>
-            <label>Setor</label>
-            <select name="setor_id" required>
-                <option value="">-- Selecione --</option>
-                {% for s in setores %}
-                <option value="{{ s.id }}" {% if equip and equip.setor_id == s.id %}selected{% endif %}>{{ s.nome }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <button type="submit">Salvar</button>
-        <a href="/admin/equipamentos">Cancelar</a>
+      </div>
+<div class="flex gap-3 mt-6">
+      <button type="submit" class="flex-1 bg-ccf hover:bg-ccflight text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">{{ 'Salvar' if equipamento else 'Criar Equipamento' }}</button>
+      <a href="/equipamentos/" class="px-4 py-2.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-colors">Cancelar</a>
+    </div>
     </form>
-</body>
-</html>
+  </div>
+</div>
+<script>
+async function loadDefaults(tipo){
+  if(!tipo)return;
+  const fields=['temp_min','temp_max','umid_min','umid_max'];
+  if(fields.some(f=>document.getElementById(f).value.trim()))return;
+  try{const r=await fetch('/equipamentos/api/defaults/'+tipo);const d=await r.json();
+    ['temp_min','temp_max','umid_min','umid_max'].forEach(k=>{if(d[k]!==null)document.getElementById(k).value=d[k];});}catch(_){}
+}
+</script>
+{% endblock %}

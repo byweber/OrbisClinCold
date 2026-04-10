@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Usuários{% endblock %}
+{% block page_title %}Usuários{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="flex items-center justify-between mb-5">
+    <h2 class="text-slate-800 font-bold text-xl">Usuários</h2>
+    <a href="/usuarios/novo" class="bg-ccf hover:bg-ccflight text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors">+ Novo</a>
+  </div>
+
+  {% set _ok  = request.query_params.get('ok')  %}
+  {% set _er  = request.query_params.get('erro') %}
+  {% set _usr = request.query_params.get('tmp_user') %}
+  {% set _pwd = request.query_params.get('tmp_pwd') %}
+
+  {% if _ok %}
+  <div class="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-xl mb-5">
+    ✓ {% if _ok=='criado' %}Usuário criado.{% elif _ok=='atualizado' %}Atualizado.
+    {% elif _ok=='desativado' %}Desativado.{% elif _ok=='ativado' %}Reativado.
+    {% elif _ok=='senha_resetada' %}Senha redefinida.{% else %}{{ _ok }}{% endif %}
+    {% if _usr and _pwd %}
+    <span class="block mt-2 font-mono bg-green-100 text-green-900 px-3 py-1 rounded">
+      Login: <strong>{{ _usr }}</strong> · Senha temporária: <strong>{{ _pwd }}</strong>
+    </span>
+    <span class="text-xs text-green-700">Anote e informe ao usuário. A senha não será exibida novamente.</span>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% if _er %}
+  <div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5">✗ {{ _er|replace('+',' ') }}</div>
+  {% endif %}
+
+  {% if usuarios %}
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200">
+        <tr><th class="th">Usuário</th><th class="th">Nome</th><th class="th">Role</th><th class="th">Setor</th><th class="th text-center">2FA</th><th class="th text-center">Status</th><th class="th"></th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for u in usuarios %}
+        <tr class="hover:bg-slate-50">
+          <td class="td font-mono font-semibold text-slate-800">{{ u.username }}</td>
+          <td class="td text-slate-600">{{ u.nome_completo or '—' }}</td>
+          <td class="td">
+            <span class="px-2 py-0.5 rounded text-xs font-bold
+              {% if u.role=='ADMIN' %}bg-purple-100 text-purple-800
+              {% elif u.role=='OPERADOR' %}bg-blue-100 text-blue-800
+              {% else %}bg-slate-100 text-slate-600{% endif %}">{{ u.role }}</span>
+          </td>
+          <td class="td text-slate-500">{{ u.setor.nome if u.setor else '—' }}</td>
+          <td class="td text-center">{% if u.totp_enabled %}<span class="text-green-600 font-bold">✓</span>{% else %}<span class="text-slate-300">—</span>{% endif %}</td>
+          <td class="td text-center">
+            {% if u.is_active %}<span class="badge-green">Ativo</span>{% else %}<span class="badge-red">Inativo</span>{% endif %}
+            {% if u.must_change_password %}<span class="badge-gray ml-1">Troca</span>{% endif %}
+          </td>
+          <td class="td"><div class="flex justify-end gap-1.5">
+            <a href="/usuarios/{{ u.id }}/editar" class="btn-icon" title="Editar">✏️</a>
+            <form method="post" action="/usuarios/{{ u.id }}/reset-senha"
+                  onsubmit="return confirm('Redefinir senha de {{ u.username }}?')">
+              <button class="btn-icon text-amber-500" title="Redefinir senha">🔑</button>
+            </form>
+            {% if u.id != current_user.id %}
+            {% if u.is_active %}
+            <form method="post" action="/usuarios/{{ u.id }}/desativar"
+                  onsubmit="return confirm('Desativar {{ u.username }}?')">
+              <button class="btn-icon text-red-400">✗</button>
+            </form>
+            {% else %}
+            <form method="post" action="/usuarios/{{ u.id }}/ativar">
+              <button class="btn-icon text-green-500">✓</button>
+            </form>
+            {% endif %}
+            {% endif %}
+          </div></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="bg-white border border-dashed border-slate-300 rounded-2xl p-16 text-center">
+    <p class="text-slate-400 text-sm">Nenhum usuário cadastrado.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Exportar CSV{% endblock %}
+{% block page_title %}Exportar Dados CSV{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+
+  {% if erro %}
+  <div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5"
+       x-data x-init="setTimeout(()=>$el.remove(),6000)">
+    ✗ {{ erro | replace('+', ' ') }}
+  </div>
+  {% endif %}
+
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="h-1.5 bg-gradient-to-r from-ccf to-ccflight"></div>
+    <div class="px-6 py-7">
+
+      <h2 class="font-bold text-slate-800 text-lg mb-1">Exportar Dados</h2>
+      <p class="text-slate-500 text-sm mb-6">
+        Exporta leituras ou alertas em formato CSV — compatível com Excel e LibreOffice.
+        Máximo de 365 dias por exportação.
+      </p>
+
+      <!-- Seleção de equipamento e período (compartilhado) -->
+      <div class="space-y-4 mb-6" x-data="{
+        equip: '',
+        ini:   '{{ data_inicio_default }}',
+        fim:   '{{ data_fim_default }}',
+        sensor: '',
+        tipo_alerta: '',
+        get qs() {
+          let p = `equipamento_id=${this.equip}&data_inicio=${this.ini}&data_fim=${this.fim}`;
+          if (this.sensor)       p += `&sensor_id=${this.sensor}`;
+          if (this.tipo_alerta)  p += `&tipo=${this.tipo_alerta}`;
+          return p;
+        }
+      }">
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="field-label">Equipamento <span class="text-red-500">*</span></label>
+            <select x-model="equip" class="field-input">
+              <option value="">— Selecione —</option>
+              {% for e in equipamentos %}
+              <option value="{{ e.id }}">
+                {{ e.nome }}{% if e.setor %} · {{ e.setor.nome }}{% endif %}
+                ({{ e.tipo | replace('_', ' ') }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Data início</label>
+            <input type="date" x-model="ini" class="field-input">
+          </div>
+          <div>
+            <label class="field-label">Data fim</label>
+            <input type="date" x-model="fim" class="field-input">
+          </div>
+        </div>
+
+        <!-- Seção Leituras -->
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <p class="font-semibold text-blue-900 text-sm">Leituras de Sensores</p>
+              <p class="text-blue-700 text-xs mt-0.5">
+                Temperatura e umidade por sensor com indicação de conformidade (OK/NAO).
+              </p>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="field-label">Sensor (opcional — deixe em branco para todos)</label>
+            <input type="number" x-model="sensor" class="field-input"
+                   placeholder="ID do sensor — ex: 1">
+          </div>
+
+          <a :href="equip ? `/export/leituras?${qs}` : '#'"
+             :class="equip
+               ? 'bg-ccf hover:bg-ccflight text-white cursor-pointer'
+               : 'bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none'"
+             class="inline-flex items-center gap-2 font-semibold text-sm
+                    px-5 py-2.5 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Baixar Leituras CSV
+          </a>
+        </div>
+
+        <!-- Seção Alertas -->
+        <div class="bg-amber-50 border border-amber-100 rounded-xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <p class="font-semibold text-amber-900 text-sm">Alertas</p>
+              <p class="text-amber-700 text-xs mt-0.5">
+                Todos os alertas do período com duração, nível de escalonamento e reconhecimento.
+              </p>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="field-label">Tipo de alerta (opcional)</label>
+            <select x-model="tipo_alerta" class="field-input">
+              <option value="">— Todos os tipos —</option>
+              <option value="TEMP_ALTA">TEMP ALTA</option>
+              <option value="TEMP_BAIXA">TEMP BAIXA</option>
+              <option value="UMID_ALTA">UMID ALTA</option>
+              <option value="UMID_BAIXA">UMID BAIXA</option>
+              <option value="OFFLINE">OFFLINE</option>
+            </select>
+          </div>
+
+          <a :href="equip ? `/export/alertas?${qs}` : '#'"
+             :class="equip
+               ? 'bg-amber-500 hover:bg-amber-600 text-white cursor-pointer'
+               : 'bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none'"
+             class="inline-flex items-center gap-2 font-semibold text-sm
+                    px-5 py-2.5 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Baixar Alertas CSV
+          </a>
+        </div>
+
+      </div><!-- /x-data -->
+
+      <!-- Legenda das colunas -->
+      <div class="border-t border-slate-100 pt-5 mt-2">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+          Colunas exportadas
+        </p>
+        <div class="grid grid-cols-2 gap-4 text-xs text-slate-500">
+          <div>
+            <p class="font-semibold text-slate-600 mb-1">Leituras</p>
+            <p class="font-mono bg-slate-50 rounded px-2 py-1 leading-6">
+              id · data_hora · sensor_id · sensor_nome<br>
+              equipamento · setor<br>
+              temperatura_C · umidade_pct<br>
+              temp_ok · umid_ok
+            </p>
+          </div>
+          <div>
+            <p class="font-semibold text-slate-600 mb-1">Alertas</p>
+            <p class="font-mono bg-slate-50 rounded px-2 py-1 leading-6">
+              id · tipo · equipamento · setor<br>
+              inicio · fim · duracao_min<br>
+              valor_registrado · valor_limite<br>
+              nivel_escalonamento<br>
+              reconhecido_por · reconhecido_em · status
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mt-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-500">
+    <strong>Dica Excel:</strong> Abra o CSV pelo menu <em>Dados → De Texto/CSV</em>
+    e selecione delimitador vírgula + codificação UTF-8 para exibir caracteres
+    especiais corretamente. O arquivo já inclui BOM UTF-8 para facilitar.
+  </div>
+
+</div>
+{% endblock %}

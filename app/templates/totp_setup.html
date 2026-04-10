@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Configurar 2FA{% endblock %}
+{% block page_title %}Autenticação de Dois Fatores{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto">
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="h-1.5 bg-gradient-to-r from-ccf to-ccflight"></div>
+    <div class="px-6 py-7">
+      <h2 class="font-bold text-slate-800 text-lg mb-1">Configurar Autenticador TOTP</h2>
+      <p class="text-slate-500 text-sm mb-5">Use Google Authenticator, Authy ou qualquer app TOTP compatível.</p>
+
+      {% if erro %}<div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-5">{{ erro }}</div>{% endif %}
+
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-5 text-center">
+        {% if qr_svg %}
+        <div class="inline-block">{{ qr_svg | safe }}</div>
+        {% else %}
+        <p class="text-xs text-slate-500 mb-2">Adicione manualmente no seu app:</p>
+        <code class="block bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono break-all">{{ secret }}</code>
+        {% endif %}
+      </div>
+
+      <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-5 text-xs text-amber-800">
+        <strong>Guarde o código secreto:</strong> {{ secret }}<br>
+        Ele é necessário para recuperar acesso caso perca o dispositivo.
+      </div>
+
+      <form method="post" action="/auth/totp/setup/confirmar">
+        <input type="hidden" name="secret" value="{{ secret }}">
+        <label class="field-label">Código de confirmação (6 dígitos)</label>
+        <input name="codigo" type="text" inputmode="numeric" maxlength="6"
+               pattern="[0-9]{6}" required autofocus
+               class="field-input font-mono text-2xl tracking-widest text-center mb-4"
+               placeholder="000000">
+        <button type="submit" class="w-full bg-ccf hover:bg-ccflight text-white font-semibold py-2.5 rounded-lg text-sm">
+          Ativar 2FA
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

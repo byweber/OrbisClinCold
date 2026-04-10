@@ -54,7 +54,12 @@
       <a href="/setores/"      class="nav-link {% block nav_setores %}{% endblock %}">Setores</a>
       <a href="/equipamentos/" class="nav-link {% block nav_equip %}{% endblock %}">Equipamentos</a>
       <a href="/sensores/"     class="nav-link {% block nav_sensores %}{% endblock %}">Sensores</a>
+      <a href="/usuarios/"     class="nav-link {% block nav_usuarios %}{% endblock %}">Usuários</a>
+      <a href="/audit/"        class="nav-link {% block nav_audit %}{% endblock %}">Audit Log</a>
+      <a href="/export/"       class="nav-link {% block nav_export %}{% endblock %}">Exportar CSV</a>
       {% endif %}
+      <a href="/relatorios/"      class="nav-link {% block nav_relatorios %}{% endblock %}">Relatórios PDF</a>
+      <a href="/auth/totp/status" class="nav-link {% block nav_totp %}{% endblock %}">Segurança (2FA)</a>
     </nav>
     <div class="border-t border-orbislight px-4 py-4">
       <p class="text-white text-sm font-medium">{{ current_user.nome_completo or current_user.username }}</p>

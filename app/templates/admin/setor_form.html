@@ -1,62 +1,27 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{% if sensor %}Editar{% else %}Novo{% endif %} Sensor</title>
-</head>
-<body>
-    <h1>{% if sensor %}Editar{% else %}Novo{% endif %} Sensor</h1>
-    <form method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div>
-            <label>Nome</label>
-            <input type="text" name="nome" value="{{ sensor.nome if sensor else '' }}" required>
-        </div>
-        <div>
-            <label>Tipo</label>
-            <select name="tipo" required>
-                <option value="temperatura" {% if sensor and sensor.tipo == 'temperatura' %}selected{% endif %}>Temperatura</option>
-                <option value="umidade" {% if sensor and sensor.tipo == 'umidade' %}selected{% endif %}>Umidade</option>
-            </select>
-        </div>
-        <div>
-            <label>Unidade</label>
-            <input type="text" name="unidade" value="{{ sensor.unidade if sensor else '°C' }}">
-        </div>
-        <div>
-            <label>Endereço</label>
-            <input type="text" name="endereco" value="{{ sensor.endereco if sensor else '' }}">
-        </div>
-        <div>
-            <label>Protocolo</label>
-            <select name="protocolo">
-                <option value="MODBUS" {% if sensor and sensor.protocolo == 'MODBUS' %}selected{% endif %}>MODBUS</option>
-                <option value="MQTT" {% if sensor and sensor.protocolo == 'MQTT' %}selected{% endif %}>MQTT</option>
-                <option value="HTTP" {% if sensor and sensor.protocolo == 'HTTP' %}selected{% endif %}>HTTP</option>
-            </select>
-        </div>
-        <div>
-            <label>Equipamento</label>
-            <select name="equipamento_id" required>
-                <option value="">-- Selecione --</option>
-                {% for e in equipamentos %}
-                <option value="{{ e.id }}" {% if sensor and sensor.equipamento_id == e.id %}selected{% endif %}>{{ e.nome }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div>
-            <label>Alerta Mínimo</label>
-            <input type="number" step="0.1" name="alerta_min" value="{{ sensor.alerta_min if sensor else '' }}">
-        </div>
-        <div>
-            <label>Alerta Máximo</label>
-            <input type="number" step="0.1" name="alerta_max" value="{{ sensor.alerta_max if sensor else '' }}">
-        </div>
-        <div>
-            <label>Ativo</label>
-            <input type="checkbox" name="ativo" value="true" {% if sensor and sensor.ativo %}checked{% endif %}>
-        </div>
-        <button type="submit">Salvar</button>
-        <a href="/admin/sensores">Cancelar</a>
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if setor else 'Novo' }} Setor{% endblock %}
+{% block page_title %}{{ 'Editar' if setor else 'Novo' }} Setor{% endblock %}
+{% block nav_setores %}active{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+<a href="/setores/" class="inline-flex items-center gap-1 text-slate-500 hover:text-ccf text-sm mb-5 transition-colors">← Voltar para Setores</a><div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+  <div class="h-1.5 bg-gradient-to-r from-ccf to-ccflight"></div>
+  <div class="px-6 py-7">{% if erro %}<div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-5">{{ erro }}</div>{% endif %}
+    <h2 class="font-bold text-slate-800 text-lg mb-5">{{ 'Editar Setor' if setor else 'Novo Setor' }}</h2>
+    <form method="post" action="{{ '/setores/'+setor.id|string+'/editar' if setor else '/setores/novo' }}">
+      <div class="mb-4">
+        <label class="field-label">Nome <span class="text-red-500">*</span></label>
+        <input name="nome" type="text" required autofocus value="{{ setor.nome if setor else '' }}" class="field-input" placeholder="Ex.: Farmácia, UTI">
+      </div>
+      <div class="mb-6">
+        <label class="field-label">Descrição</label>
+        <textarea name="descricao" rows="3" class="field-input resize-none" placeholder="Observações...">{{ setor.descricao if setor and setor.descricao else '' }}</textarea>
+      </div>
+<div class="flex gap-3 mt-6">
+      <button type="submit" class="flex-1 bg-ccf hover:bg-ccflight text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">Salvar</button>
+      <a href="/setores/" class="px-4 py-2.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-colors">Cancelar</a>
+    </div>
     </form>
-</body>
-</html>
+  </div>
+</div>
+{% endblock %}
