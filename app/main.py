@@ -1,60 +1,77 @@
-"""Ponto de entrada — OrbisClin Cold."""
-import logging
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from pathlib import Path
-
-from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+# app/main.py
+from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_csrf_protect import CsrfProtect
+from fastapi_csrf_protect.exceptions import CsrfProtectError
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import JSONResponse
+from app.core.config import settings
+from app.routers import auth, dashboard, admin, equipamentos, sensores, alertas, audit
+from app.core.database import engine, Base, init_db
+import logging
 
-from app.core.config import get_settings
-from app.core.database import init_db
+logging.basicConfig(level=settings.LOG_LEVEL)
+logger = logging.getLogger(__name__)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger   = logging.getLogger(__name__)
-settings = get_settings()
-
-_TMPL_DIR    = str(Path(__file__).resolve().parent / "templates")
-_STATIC_DIR  = str(Path(__file__).resolve().parent / "static")
-
-
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
-    logger.info("Iniciando %s na porta %s", settings.APP_NAME, settings.PORT)
-    init_db()
-    logger.info("Banco inicializado")
-    yield
-
+# Inicializa banco (cria tabelas e admin se não existir)
+init_db()
 
 app = FastAPI(
     title=settings.APP_NAME,
-    version="1.0.0",
-    lifespan=lifespan,
-    docs_url="/docs" if not settings.is_production else None,
-    redoc_url=None,
+    version=settings.APP_VERSION,
+    debug=settings.DEBUG,
 )
 
-app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
-templates = Jinja2Templates(directory=_TMPL_DIR)
-templates.env.globals["now"] = datetime.now(timezone.utc)
+# SessionMiddleware necessário para CSRF
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,
+    session_cookie="session",
+    max_age=86400,
+)
 
-# ── Routers ───────────────────────────────────────────────────────────────────
-from app.routers import auth, setores, equipamentos, sensores, alertas, dashboard  # noqa: E402
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app.include_router(auth.router,         prefix="/auth",         tags=["auth"])
-app.include_router(setores.router,      prefix="/setores",      tags=["setores"])
-app.include_router(equipamentos.router, prefix="/equipamentos", tags=["equipamentos"])
-app.include_router(sensores.router,     prefix="/sensores",     tags=["sensores"])
-app.include_router(alertas.router,      prefix="/alertas",      tags=["alertas"])
-app.include_router(dashboard.router,    prefix="",              tags=["dashboard"])
+# Configuração CSRF
+@CsrfProtect.load_config
+def get_csrf_config():
+    return [
+        ("secret_key", settings.SECRET_KEY),
+        ("cookie_secure", settings.COOKIE_SECURE),
+        ("cookie_samesite", "lax"),
+        ("token_location", "body"),
+    ]
 
+@app.exception_handler(CsrfProtectError)
+async def csrf_protect_exception_handler(request: Request, exc: CsrfProtectError):
+    logger.warning(f"CSRF validation failed: {exc.message}")
+    return JSONResponse(status_code=403, content={"detail": "CSRF token inválido ou ausente."})
 
-@app.get("/health")
-async def health():
-    return {"status": "ok", "app": settings.APP_NAME}
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+templates = Jinja2Templates(directory="app/templates")
+
+# Inclusão das rotas
+app.include_router(auth.router)
+app.include_router(dashboard.router)
+app.include_router(admin.router)
+app.include_router(equipamentos.router)
+app.include_router(sensores.router)
+app.include_router(alertas.router)
+app.include_router(audit.router)
+
+@app.get("/")
+async def root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/csrf-token")
+async def get_csrf_token(csrf_protect: CsrfProtect = Depends()):
+    csrf_token = csrf_protect.generate_csrf_token()
+    return {"csrf_token": csrf_token}

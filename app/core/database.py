@@ -1,85 +1,63 @@
-"""
-Banco de dados — SQLite (dev) / PostgreSQL+TimescaleDB (prod).
-init_db() cria admin com senha aleatória no primeiro boot.
-"""
+# app/core/database.py
 import logging
 import secrets
 import string
-from datetime import datetime, timezone
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from app.core.config import settings
+from app.core.security import get_password_hash
 
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-
-from app.core.config import get_settings
-
-logger   = logging.getLogger(__name__)
-settings = get_settings()
-
-# ── Engine ────────────────────────────────────────────────────────────────────
-
-_connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+logger = logging.getLogger(__name__)
 
 engine = create_engine(
     settings.DATABASE_URL,
-    connect_args=_connect_args,
-    echo=(settings.APP_ENV == "development" and not settings.TESTING),
+    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
 )
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-if settings.DATABASE_URL.startswith("sqlite"):
-    @event.listens_for(engine, "connect")
-    def _set_sqlite_pragma(conn, _rec):
-        cur = conn.cursor()
-        cur.execute("PRAGMA journal_mode=WAL")
-        cur.execute("PRAGMA foreign_keys=ON")
-        cur.close()
+Base = declarative_base()
 
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-def get_db():
-    db: Session = SessionLocal()
+def get_db() -> Session:
+    db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-
-def _gerar_senha(n: int = 16) -> str:
-    alpha = string.ascii_letters + string.digits + "!@#$%"
-    return "".join(secrets.choice(alpha) for _ in range(n))
-
-
-def init_db() -> None:
-    """Cria tabelas e admin inicial (apenas se não houver usuários)."""
-    from app.core import models  # noqa: F401
-    from app.core.pwd import hash_password
-
+def init_db():
+    from app.core.models import Usuario
     Base.metadata.create_all(bind=engine)
-
-    # Em testes, não criar admin — o conftest controla o DB
-    if settings.TESTING:
-        return
-
-    with SessionLocal() as db:
-        from app.core.models import Usuario
-        if db.query(Usuario).count() == 0:
-            senha = _gerar_senha(16)
-            db.add(Usuario(
+    db = SessionLocal()
+    try:
+        admin = db.query(Usuario).filter(Usuario.role == "ADMIN").first()
+        if not admin:
+            alphabet = string.ascii_letters + string.digits
+            senha_temp = ''.join(secrets.choice(alphabet) for _ in range(12))
+            admin = Usuario(
                 username="admin",
-                hashed_password=hash_password(senha),
+                email="admin@orbisclin.local",
+                nome_completo="Administrador do Sistema",
+                hashed_password=get_password_hash(senha_temp),
                 role="ADMIN",
-                must_change_password=True,
-                is_active=True,
-                created_at=datetime.now(timezone.utc),
-            ))
+                ativo=True
+            )
+            db.add(admin)
             db.commit()
-            logger.warning("=" * 60)
-            logger.warning("  PRIMEIRO BOOT — OrbisClin Cold")
-            logger.warning("  Usuário : admin")
-            logger.warning("  Senha   : %s", senha)
-            logger.warning("  Troque a senha imediatamente após o login!")
-            logger.warning("=" * 60)
+            db.refresh(admin)
+            if settings.APP_ENV == "development":
+                logger.warning("=" * 60)
+                logger.warning("🔐 USUÁRIO ADMIN CRIADO")
+                logger.warning(f"   Username: admin")
+                logger.warning(f"   Senha....: {senha_temp}")
+                logger.warning("=" * 60)
+            else:
+                logger.info("Usuário admin criado com sucesso.")
+    except Exception as e:
+        logger.error(f"Erro ao inicializar banco: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+if __name__ == "__main__":
+    init_db()

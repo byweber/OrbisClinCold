@@ -1,87 +1,75 @@
-"""JWT, cookies, require_role, apply_setor_filter."""
-from __future__ import annotations
-import logging
+# app/core/security.py
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-
-from fastapi import Depends, HTTPException, Request, status
-from jose import JWTError, jwt
+from jose import jwt
+from passlib.context import CryptContext
+from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-
-from app.core.config import get_settings
-from app.core.constants import Role
+from app.core.config import settings
 from app.core.database import get_db
-from app.core.pwd import hash_password, verify_password  # noqa: F401 — re-exportado
+from app.core.models import Usuario
 
-logger   = logging.getLogger(__name__)
-settings = get_settings()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
 
-def create_token(data: dict, expires_minutes: Optional[int] = None) -> str:
-    payload = data.copy()
-    payload["exp"] = datetime.now(timezone.utc) + timedelta(
-        minutes=expires_minutes or settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
 
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-def decode_token(token: str) -> dict:
+def decode_token(token: str) -> Optional[dict]:
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"message": "Token inválido ou expirado."},
-        )
+    except jwt.JWTError:
+        return None
 
+def set_auth_cookie(response, token: str):
+    response.set_cookie(
+        key=settings.COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
 
-def get_current_user(request: Request, db: Session = Depends(get_db)):
-    from app.core.models import Usuario
+async def get_current_user(
+    request: Request,
+    db: Session = Depends(get_db)
+) -> Usuario:
     token = request.cookies.get(settings.COOKIE_NAME)
     if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail={"message": "Não autenticado."})
-    payload  = decode_token(token)
-    username = payload.get("sub", "")
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    payload = decode_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    username: str = payload.get("sub")
     if not username:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail={"message": "Token malformado."})
-    user = db.query(Usuario).filter(
-        Usuario.username == username, Usuario.is_active == True  # noqa: E712
-    ).first()
+        raise HTTPException(status_code=401, detail="Token inválido")
+    user = db.query(Usuario).filter(Usuario.username == username).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail={"message": "Usuário não encontrado ou inativo."})
+        raise HTTPException(status_code=401, detail="Usuário não encontrado")
     return user
 
+def get_current_active_user(current_user: Usuario = Depends(get_current_user)) -> Usuario:
+    if not current_user.ativo:
+        raise HTTPException(status_code=403, detail="Usuário inativo")
+    return current_user
 
-def require_role(*roles: Role):
-    def _check(user=Depends(get_current_user)):
-        if user.role not in [r.value for r in roles]:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail={"message": "Permissão insuficiente."})
-        return user
-    return _check
-
-
-def apply_setor_filter(query, user, model):
-    if user.role == Role.ADMIN.value:
-        return query
-    if user.setor_id is None:
-        return query.filter(False)
-    return query.filter(model.setor_id == user.setor_id)
-
-
-def set_auth_cookie(response, token: str) -> None:
-    response.set_cookie(
-        key=settings.COOKIE_NAME, value=token,
-        httponly=True, secure=settings.COOKIE_SECURE,
-        samesite="lax", max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
-
-
-def clear_auth_cookie(response) -> None:
-    response.delete_cookie(
-        key=settings.COOKIE_NAME,
-        httponly=True, secure=settings.COOKIE_SECURE, samesite="lax",
-    )
+def role_required(required_role: str):
+    def dependency(current_user: Usuario = Depends(get_current_active_user)):
+        if current_user.role != required_role and current_user.role != "ADMIN":
+            raise HTTPException(status_code=403, detail="Permissão insuficiente")
+        return current_user
+    return dependency

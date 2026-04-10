@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% if usuario %}Editar{% else %}Novo{% endif %} Usuário</title>
+</head>
+<body>
+    <h1>{% if usuario %}Editar{% else %}Novo{% endif %} Usuário</h1>
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div>
+            <label>Username</label>
+            <input type="text" name="username" value="{{ usuario.username if usuario else '' }}" required>
+        </div>
+        <div>
+            <label>Email</label>
+            <input type="email" name="email" value="{{ usuario.email if usuario else '' }}" required>
+        </div>
+        <div>
+            <label>Nome Completo</label>
+            <input type="text" name="nome_completo" value="{{ usuario.nome_completo if usuario else '' }}" required>
+        </div>
+        <div>
+            <label>Senha {% if usuario %}(deixe em branco para manter){% endif %}</label>
+            <input type="password" name="password" {% if not usuario %}required{% endif %}>
+        </div>
+        <div>
+            <label>Role</label>
+            <select name="role" required>
+                <option value="ADMIN" {% if usuario and usuario.role == 'ADMIN' %}selected{% endif %}>Administrador</option>
+                <option value="OPERADOR" {% if usuario and usuario.role == 'OPERADOR' %}selected{% endif %}>Operador</option>
+                <option value="VIEWER" {% if usuario and usuario.role == 'VIEWER' %}selected{% endif %}>Visualizador</option>
+            </select>
+        </div>
+        <div>
+            <label>Ativo</label>
+            <input type="checkbox" name="ativo" value="true" {% if usuario and usuario.ativo %}checked{% endif %}>
+        </div>
+        <button type="submit">Salvar</button>
+        <a href="/admin/usuarios">Cancelar</a>
+    </form>
+</body>
+</html>

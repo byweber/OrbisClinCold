@@ -1,121 +1,57 @@
-"""Router de autenticação."""
-from __future__ import annotations
-from datetime import datetime, timezone
-from pathlib import Path
-
-from fastapi import APIRouter, Depends, Form, Request
+# app/routers/auth.py
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-
-from app.core.config import get_settings
-from app.core.constants import AcaoAudit
+from sqlalchemy import func
 from app.core.database import get_db
-from app.core.security import (
-    clear_auth_cookie, create_token, get_current_user,
-    hash_password, set_auth_cookie, verify_password,
-)
-from app.core.utils import log_audit
+from app.core.security import verify_password, create_access_token, set_auth_cookie, get_current_active_user
+from app.core.models import Usuario
+from fastapi_csrf_protect import CsrfProtect
 
-settings  = get_settings()
-router    = APIRouter()
-templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
-
+router = APIRouter(prefix="/auth", tags=["autenticação"])
+templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    if request.cookies.get(settings.COOKIE_NAME):
-        return RedirectResponse("/", status_code=302)
-    return templates.TemplateResponse(request, "login.html", {"erro": None})
-
+async def login_page(request: Request, csrf_protect: CsrfProtect = Depends()):
+    csrf_token = csrf_protect.generate_csrf_token()
+    return templates.TemplateResponse("auth/login.html", {"request": request, "csrf_token": csrf_token})
 
 @router.post("/login", response_class=HTMLResponse)
 async def login(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
-    db: Session = Depends(get_db),
+    csrf_protect: CsrfProtect = Depends(),
+    db: Session = Depends(get_db)
 ):
-    from app.core.models import Usuario
-    _ERRO = "Usuário ou senha incorretos."
-    user = db.query(Usuario).filter(
-        Usuario.username == username.strip().lower(),
-        Usuario.is_active == True,  # noqa: E712
-    ).first()
+    await csrf_protect.validate_csrf(request)
+    user = db.query(Usuario).filter(func.lower(Usuario.username) == username.strip().lower()).first()
     if not user or not verify_password(password, user.hashed_password):
-        log_audit(db, username=username, action=AcaoAudit.LOGIN.value,
-                  details={"sucesso": False}, request=request)
-        db.commit()
-        return templates.TemplateResponse(request, "login.html", {"erro": _ERRO}, status_code=401)
+        csrf_token = csrf_protect.generate_csrf_token()
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {"request": request, "error": "Credenciais inválidas", "csrf_token": csrf_token},
+            status_code=401
+        )
+    if not user.ativo:
+        csrf_token = csrf_protect.generate_csrf_token()
+        return templates.TemplateResponse(
+            "auth/login.html",
+            {"request": request, "error": "Usuário inativo", "csrf_token": csrf_token},
+            status_code=403
+        )
+    access_token = create_access_token(data={"sub": user.username, "role": user.role})
+    response = RedirectResponse(url="/dashboard", status_code=302)
+    set_auth_cookie(response, access_token)
+    return response
 
-    user.last_login = datetime.now(timezone.utc)
-    log_audit(db, username=user.username, action=AcaoAudit.LOGIN.value,
-              details={"sucesso": True, "role": user.role}, request=request)
-    db.commit()
-
-    token   = create_token({"sub": user.username, "role": user.role})
-    destino = "/auth/trocar-senha" if user.must_change_password else "/"
-    resp    = RedirectResponse(destino, status_code=302)
-    set_auth_cookie(resp, token)
-    return resp
-
-
-@router.post("/logout")
-async def logout(request: Request, db: Session = Depends(get_db),
-                 current_user=Depends(get_current_user)):
-    log_audit(db, username=current_user.username, action=AcaoAudit.LOGOUT.value, request=request)
-    db.commit()
-    resp = RedirectResponse("/auth/login", status_code=302)
-    clear_auth_cookie(resp)
-    return resp
-
+@router.get("/logout")
+async def logout():
+    response = RedirectResponse(url="/auth/login", status_code=302)
+    response.delete_cookie("cold_session")
+    return response
 
 @router.get("/me")
-async def me(current_user=Depends(get_current_user)):
-    return {
-        "id": current_user.id, "username": current_user.username,
-        "nome_completo": current_user.nome_completo, "role": current_user.role,
-        "setor_id": current_user.setor_id, "must_change_password": current_user.must_change_password,
-        "totp_enabled": current_user.totp_enabled, "last_login": current_user.last_login,
-    }
-
-
-@router.get("/trocar-senha", response_class=HTMLResponse)
-async def trocar_senha_page(request: Request, current_user=Depends(get_current_user)):
-    return templates.TemplateResponse(
-        request, "trocar_senha.html",
-        {"current_user": current_user, "erro": None, "sucesso": False},
-    )
-
-
-@router.post("/trocar-senha", response_class=HTMLResponse)
-async def trocar_senha(
-    request: Request,
-    senha_atual: str = Form(...),
-    nova_senha:  str = Form(...),
-    confirmar:   str = Form(...),
-    db: Session      = Depends(get_db),
-    current_user     = Depends(get_current_user),
-):
-    ctx = {"current_user": current_user, "sucesso": False}
-
-    if not verify_password(senha_atual, current_user.hashed_password):
-        return templates.TemplateResponse(request, "trocar_senha.html",
-                                          {**ctx, "erro": "Senha atual incorreta."}, status_code=400)
-    if nova_senha != confirmar:
-        return templates.TemplateResponse(request, "trocar_senha.html",
-                                          {**ctx, "erro": "As senhas não coincidem."}, status_code=400)
-    if len(nova_senha) < 8:
-        return templates.TemplateResponse(request, "trocar_senha.html",
-                                          {**ctx, "erro": "A nova senha deve ter pelo menos 8 caracteres."}, status_code=400)
-    if nova_senha == senha_atual:
-        return templates.TemplateResponse(request, "trocar_senha.html",
-                                          {**ctx, "erro": "A nova senha deve ser diferente da atual."}, status_code=400)
-
-    current_user.hashed_password     = hash_password(nova_senha)
-    current_user.must_change_password = False
-    log_audit(db, username=current_user.username,
-              action=AcaoAudit.PASSWORD_CHANGE.value, request=request)
-    db.commit()
-    return templates.TemplateResponse(request, "trocar_senha.html",
-                                      {**ctx, "erro": None, "sucesso": True})
+async def read_users_me(current_user: Usuario = Depends(get_current_active_user)):
+    return current_user
