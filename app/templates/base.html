@@ -4,7 +4,6 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}OrbisClin Cold{% endblock %}</title>
 
-  <!-- Anti-flash: aplica dark antes do render para evitar pisca branco -->
   <script>
     (function(){
       var t = localStorage.getItem('theme');
@@ -31,32 +30,34 @@
   <style>
     /* ── Variáveis de tema ───────────────────────────────────────────── */
     :root {
-      --bg-page:   #f8fafc;
-      --bg-card:   #ffffff;
-      --bg-input:  #f8fafc;
-      --bg-muted:  #f1f5f9;
-      --c-text-1:  #1e293b;
-      --c-text-2:  #475569;
-      --c-text-3:  #94a3b8;
-      --c-border:  #e2e8f0;
-      --c-border-m:#cbd5e1;
+      --bg-page:    #EEF2F7;
+      --bg-card:    #F5F8FC;
+      --bg-input:   #EAEef5;
+      --bg-muted:   #E2E8F2;
+      --bg-header:  #F0F4F9;
+      --c-text-1:   #1e293b;
+      --c-text-2:   #3d5068;
+      --c-text-3:   #7a92aa;
+      --c-border:   #C8D5E3;
+      --c-border-m: #B0C2D6;
     }
     .dark {
-      --bg-page:   #06101E;
-      --bg-card:   #0B1526;
-      --bg-input:  #0E1A2E;
-      --bg-muted:  #091220;
-      --c-text-1:  #e2e8f0;
-      --c-text-2:  #94a3b8;
-      --c-text-3:  #64748b;
-      --c-border:  #1a3050;
-      --c-border-m:#1e3a5f;
+      --bg-page:    #06101E;
+      --bg-card:    #0B1526;
+      --bg-input:   #0E1A2E;
+      --bg-muted:   #091220;
+      --bg-header:  #0B1526;
+      --c-text-1:   #e2e8f0;
+      --c-text-2:   #94a3b8;
+      --c-text-3:   #64748b;
+      --c-border:   #1a3050;
+      --c-border-m: #1e3a5f;
     }
 
     /* ── Base ────────────────────────────────────────────────────────── */
-    body { background-color: var(--bg-page); transition: background-color .2s, color .2s; }
+    body { background-color: var(--bg-page); color: var(--c-text-1); transition: background-color .2s, color .2s; }
 
-    /* ── Componentes de layout ───────────────────────────────────────── */
+    /* ── Componentes ─────────────────────────────────────────────────── */
     .nav-link { display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;
       border-radius:.375rem;color:#94a3b8;font-size:.875rem;text-decoration:none;transition:all .15s }
     .nav-link:hover,
@@ -64,81 +65,68 @@
     .nav-link.active  { color:#06B6D4;font-weight:600 }
 
     .th { padding:.7rem 1rem;text-align:left;font-size:.7rem;font-weight:600;
-      text-transform:uppercase;letter-spacing:.05em;color:#64748b }
-    .td { padding:.7rem 1rem;color:#334155 }
+      text-transform:uppercase;letter-spacing:.05em;color:var(--c-text-2);background-color:var(--bg-muted) }
+    .td { padding:.7rem 1rem;color:var(--c-text-1) }
 
-    .badge-green { display:inline-flex;padding:.2rem .6rem;border-radius:9999px;
-      font-size:.7rem;font-weight:600;background:#dcfce7;color:#16a34a }
-    .badge-red   { display:inline-flex;padding:.2rem .6rem;border-radius:9999px;
-      font-size:.7rem;font-weight:600;background:#fee2e2;color:#dc2626 }
-    .badge-gray  { display:inline-flex;padding:.2rem .6rem;border-radius:9999px;
-      font-size:.7rem;font-weight:600;background:#f1f5f9;color:#64748b }
+    .badge-green { display:inline-flex;padding:.2rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:#dcfce7;color:#166534 }
+    .badge-red   { display:inline-flex;padding:.2rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:#fee2e2;color:#991b1b }
+    .badge-gray  { display:inline-flex;padding:.2rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:var(--bg-muted);color:var(--c-text-2) }
 
-    .btn-icon { display:inline-flex;padding:.375rem;border-radius:.375rem;
-      color:#94a3b8;transition:all .15s }
-    .btn-icon:hover { background:#f1f5f9;color:#0891B2 }
+    .btn-icon { display:inline-flex;padding:.375rem;border-radius:.375rem;color:var(--c-text-3);transition:all .15s }
+    .btn-icon:hover { background:var(--bg-muted);color:#0891B2 }
 
-    .field-label { display:block;font-size:.75rem;font-weight:600;
-      text-transform:uppercase;letter-spacing:.05em;color:#475569;margin-bottom:.375rem }
-    .field-input  { width:100%;background:#f8fafc;border:1px solid #cbd5e1;
+    .field-label { display:block;font-size:.75rem;font-weight:600;text-transform:uppercase;
+      letter-spacing:.05em;color:var(--c-text-2);margin-bottom:.375rem }
+    .field-input  { width:100%;background:var(--bg-input);border:1px solid var(--c-border);
       border-radius:.5rem;padding:.625rem .875rem;font-size:.875rem;
-      color:#1e293b;outline:none;transition:all .15s }
+      color:var(--c-text-1);outline:none;transition:all .15s }
     .field-input:focus { border-color:#0891B2;box-shadow:0 0 0 3px rgba(8,145,178,.15) }
     select.field-input { cursor:pointer }
 
+    /* ── Overrides Tailwind — light mode ─────────────────────────────── */
+    .bg-white        { background-color:var(--bg-card)   !important }
+    .bg-slate-50     { background-color:var(--bg-input)  !important }
+    .bg-slate-100    { background-color:var(--bg-muted)  !important }
+    .border-slate-100,
+    .border-slate-200,
+    .border-slate-300 { border-color:var(--c-border) !important }
+    .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color:var(--c-border) !important }
+    .text-slate-800,
+    .text-slate-700  { color:var(--c-text-1) !important }
+    .text-slate-600,
+    .text-slate-500  { color:var(--c-text-2) !important }
+    .text-slate-400  { color:var(--c-text-3) !important }
+    .hover\:bg-slate-50:hover  { background-color:var(--bg-input) !important }
+    .hover\:bg-slate-100:hover { background-color:var(--bg-muted) !important }
+
     /* ── Overrides dark mode ─────────────────────────────────────────── */
-    .dark .bg-white          { background-color:var(--bg-card)  !important }
-    .dark .bg-slate-50       { background-color:var(--bg-input) !important }
-    .dark .bg-slate-100      { background-color:var(--bg-muted) !important }
-    .dark .border-slate-100,
-    .dark .border-slate-200,
-    .dark .border-slate-300  { border-color:var(--c-border) !important }
-    .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color:var(--c-border) !important }
-    .dark .text-slate-800,
-    .dark .text-slate-700    { color:var(--c-text-1) !important }
-    .dark .text-slate-600,
-    .dark .text-slate-500    { color:var(--c-text-2) !important }
-    .dark .text-slate-400    { color:var(--c-text-3) !important }
-    .dark .hover\:bg-slate-50:hover { background-color:var(--bg-input) !important }
-    .dark .hover\:bg-slate-100:hover{ background-color:var(--bg-muted) !important }
-
-    .dark .field-label { color:var(--c-text-2) }
-    .dark .field-input { background:var(--bg-input)!important;border-color:var(--c-border-m)!important;color:var(--c-text-1)!important }
-    .dark .th  { color:var(--c-text-2);background-color:var(--bg-muted)!important }
-    .dark .td  { color:var(--c-text-1) }
-    .dark .btn-icon { color:var(--c-text-3) }
-    .dark .btn-icon:hover { background:var(--bg-input);color:#0891B2 }
-
     .dark .badge-green { background:#052E16;color:#4ade80 }
     .dark .badge-red   { background:#2D0A0A;color:#f87171 }
-    .dark .badge-gray  { background:var(--bg-input);color:var(--c-text-2) }
 
-    /* Flash messages */
-    .dark .bg-green-50    { background:#052E16!important }
-    .dark .bg-red-50      { background:#2D0A0A!important }
-    .dark .bg-amber-50    { background:#271A05!important }
-    .dark .bg-blue-50     { background:#0A1A2E!important }
-    .dark .bg-blue-100    { background:#0D2040!important }
-    .dark .border-green-200{ border-color:#134E2A!important }
-    .dark .border-red-200  { border-color:#5B1A1A!important }
-    .dark .border-amber-200{ border-color:#44300A!important }
-    .dark .border-blue-100 { border-color:#1a3a60!important }
-    .dark .text-green-800  { color:#4ade80!important }
-    .dark .text-red-700    { color:#f87171!important }
-    .dark .text-amber-800  { color:#fbbf24!important }
-    .dark .text-blue-700   { color:#38bdf8!important }
-    .dark .text-blue-900   { color:#7dd3fc!important }
+    .dark .bg-green-50     { background:#052E16 !important }
+    .dark .bg-red-50       { background:#2D0A0A !important }
+    .dark .bg-amber-50     { background:#271A05 !important }
+    .dark .bg-blue-50      { background:#0A1A2E !important }
+    .dark .bg-blue-100     { background:#0D2040 !important }
+    .dark .border-green-200{ border-color:#134E2A !important }
+    .dark .border-red-200  { border-color:#5B1A1A !important }
+    .dark .border-amber-200{ border-color:#44300A !important }
+    .dark .border-blue-100 { border-color:#1a3a60 !important }
+    .dark .text-green-800  { color:#4ade80 !important }
+    .dark .text-red-700    { color:#f87171 !important }
+    .dark .text-amber-800  { color:#fbbf24 !important }
+    .dark .text-blue-700   { color:#38bdf8 !important }
+    .dark .text-blue-900   { color:#7dd3fc !important }
 
-    /* Badges de status coloridos */
-    .dark .bg-blue-100.text-blue-700  { background:#0D2040!important;color:#38bdf8!important }
-    .dark .bg-purple-100.text-purple-800 { background:#1A0A3A!important;color:#c084fc!important }
-    .dark .bg-amber-100.text-amber-800   { background:#271A05!important;color:#fbbf24!important }
-    .dark .bg-yellow-100.text-yellow-800 { background:#251D05!important;color:#fcd34d!important }
-    .dark .bg-green-100.text-green-700   { background:#052E16!important;color:#4ade80!important }
-    .dark .bg-red-100.text-red-700       { background:#2D0A0A!important;color:#f87171!important }
-    .dark .bg-teal-100.text-teal-700     { background:#052929!important;color:#2dd4bf!important }
-    .dark .bg-indigo-100.text-indigo-700 { background:#1A1040!important;color:#818cf8!important }
-    .dark .bg-slate-100.text-slate-600   { background:var(--bg-input)!important;color:var(--c-text-2)!important }
+    .dark .bg-blue-100.text-blue-700     { background:#0D2040 !important;color:#38bdf8 !important }
+    .dark .bg-purple-100.text-purple-800 { background:#1A0A3A !important;color:#c084fc !important }
+    .dark .bg-amber-100.text-amber-800   { background:#271A05 !important;color:#fbbf24 !important }
+    .dark .bg-yellow-100.text-yellow-800 { background:#251D05 !important;color:#fcd34d !important }
+    .dark .bg-green-100.text-green-700   { background:#052E16 !important;color:#4ade80 !important }
+    .dark .bg-red-100.text-red-700       { background:#2D0A0A !important;color:#f87171 !important }
+    .dark .bg-teal-100.text-teal-700     { background:#052929 !important;color:#2dd4bf !important }
+    .dark .bg-indigo-100.text-indigo-700 { background:#1A1040 !important;color:#818cf8 !important }
+    .dark .bg-slate-100.text-slate-600   { background:var(--bg-input) !important;color:var(--c-text-2) !important }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
@@ -155,7 +143,7 @@
 <div class="flex h-full">
 
   {% if current_user %}
-  <!-- ── Sidebar ────────────────────────────────────────────────────── -->
+  <!-- Sidebar -->
   <aside class="fixed inset-y-0 left-0 z-40 w-60 bg-orbisnoite flex flex-col
                 transform transition-transform lg:relative lg:translate-x-0"
          :class="sb?'translate-x-0':'-translate-x-full'">
@@ -168,8 +156,8 @@
         <circle cx="19" cy="19" r="7.5" fill="#1A4FA0"/>
         <line x1="19" y1="13" x2="19" y2="25" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
         <line x1="13" y1="19" x2="25" y2="19" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="15" y1="15" x2="23" y2="23" stroke="white" stroke-width="1"   stroke-linecap="round"/>
-        <line x1="23" y1="15" x2="15" y2="23" stroke="white" stroke-width="1"   stroke-linecap="round"/>
+        <line x1="15" y1="15" x2="23" y2="23" stroke="white" stroke-width="1" stroke-linecap="round"/>
+        <line x1="23" y1="15" x2="15" y2="23" stroke="white" stroke-width="1" stroke-linecap="round"/>
         <circle cx="34" cy="11" r="2.5" fill="#0891B2"/>
         <circle cx="4"  cy="27" r="2"   fill="white" opacity="0.65"/>
       </svg>
@@ -213,7 +201,7 @@
   <div x-show="sb" @click="sb=false" class="fixed inset-0 z-30 bg-black/50 lg:hidden" x-transition.opacity></div>
   {% endif %}
 
-  <!-- ── Conteúdo principal ─────────────────────────────────────────── -->
+  <!-- Conteúdo principal -->
   <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
     {% if current_user %}
     <header class="bg-orbisnoite border-b border-orbis px-4 py-3 flex items-center gap-4">
@@ -227,8 +215,7 @@
       <!-- Toggle dark / light -->
       <button @click="toggle()"
               class="text-slate-400 hover:text-white transition-colors p-1 rounded"
-              :title="dark ? 'Mudar para modo claro' : 'Mudar para modo escuro'">
-        <!-- Sol (mostra em dark mode) -->
+              :title="dark ? 'Modo claro' : 'Modo escuro'">
         <svg x-show="dark" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
           <circle cx="8" cy="8" r="3"/>
           <line x1="8" y1="1" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="15"/>
@@ -236,7 +223,6 @@
           <line x1="3.2" y1="3.2" x2="4.6" y2="4.6"/><line x1="11.4" y1="11.4" x2="12.8" y2="12.8"/>
           <line x1="12.8" y1="3.2" x2="11.4" y2="4.6"/><line x1="4.6" y1="11.4" x2="3.2" y2="12.8"/>
         </svg>
-        <!-- Lua (mostra em light mode) -->
         <svg x-show="!dark" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M13 9.5A6 6 0 0 1 6.5 3a6 6 0 1 0 6.5 6.5z"/>
         </svg>
