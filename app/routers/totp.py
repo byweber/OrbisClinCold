@@ -5,7 +5,8 @@ Endpoints (prefixo /auth/totp):
   GET  /setup          → exibe QR Code e código secreto para configurar app autenticador
   POST /setup/confirmar → valida o primeiro código e ativa 2FA
   POST /desativar       → desativa 2FA (exige senha atual)
-  POST /verificar       → verifica código TOTP durante o login (step 2)
+  GET  /verificar       → tela de verificação TOTP durante o login (step 2)
+  POST /verificar       → valida código TOTP e emite token completo
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from pathlib import Path
 
 import pyotp
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -28,7 +29,8 @@ router    = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 settings  = get_settings()
 
-_TOTP_ISSUER = "OrbisClin Cold"
+_TOTP_ISSUER  = "OrbisClin Cold"
+_PENDING_COOKIE = "totp_pending"
 
 
 def _provisioning_uri(secret: str, username: str) -> str:
@@ -45,7 +47,6 @@ async def setup_page(request: Request, current_user=Depends(get_current_user)):
     secret = pyotp.random_base32()
     uri    = _provisioning_uri(secret, current_user.username)
 
-    # Gera QR code como SVG inline (sem dependência externa)
     try:
         import qrcode  # type: ignore
         import qrcode.image.svg as qrsvg
@@ -78,7 +79,7 @@ async def setup_confirmar(
 ):
     totp = pyotp.TOTP(secret)
     if not totp.verify(codigo.strip(), valid_window=1):
-        uri    = _provisioning_uri(secret, current_user.username)
+        uri = _provisioning_uri(secret, current_user.username)
         return templates.TemplateResponse(request, "totp_setup.html", {
             "current_user": current_user,
             "secret": secret, "uri": uri, "qr_svg": None,
@@ -129,10 +130,18 @@ async def desativar(
 
 @router.get("/verificar", response_class=HTMLResponse)
 async def verificar_page(request: Request):
-    """Tela de verificação de código TOTP após login com senha correta."""
-    pending = request.session.get("totp_pending_user") if hasattr(request, "session") else None
-    if not pending:
+    """
+    Tela de verificação de código TOTP após login com senha correta.
+
+    BUG CORRIGIDO: a versão anterior usava request.session (Starlette) que
+    lança AssertionError quando SessionMiddleware não está instalado.
+    O fluxo correto usa o cookie httponly 'totp_pending' (JWT de curta duração)
+    setado em POST /auth/login após senha válida com TOTP habilitado.
+    """
+    if not request.cookies.get(_PENDING_COOKIE):
+        # Cookie ausente → usuário não passou pela etapa de senha; redireciona
         return RedirectResponse("/auth/login", status_code=302)
+
     return templates.TemplateResponse(request, "totp_verificar.html", {
         "erro": None,
     })
@@ -153,8 +162,7 @@ async def verificar(
     from app.core.models import Usuario
     from app.core.security import decode_token
 
-    # Lê o token pendente (JWT de curta duração, sem role)
-    pending_token = request.cookies.get("totp_pending")
+    pending_token = request.cookies.get(_PENDING_COOKIE)
     if not pending_token:
         return RedirectResponse("/auth/login", status_code=302)
 
@@ -165,7 +173,8 @@ async def verificar(
         return RedirectResponse("/auth/login", status_code=302)
 
     user = db.query(Usuario).filter(
-        Usuario.username == username, Usuario.is_active == True  # noqa: E712
+        Usuario.username == username,
+        Usuario.is_active == True,  # noqa: E712
     ).first()
     if not user or not user.totp_enabled or not user.totp_secret:
         return RedirectResponse("/auth/login", status_code=302)
@@ -187,6 +196,5 @@ async def verificar(
     destino  = "/auth/trocar-senha" if user.must_change_password else "/"
     response = RedirectResponse(destino, status_code=302)
     set_auth_cookie(response, token)
-    # Apaga cookie pendente
-    response.delete_cookie("totp_pending", httponly=True, samesite="lax")
+    response.delete_cookie(_PENDING_COOKIE, httponly=True, samesite="lax")
     return response
