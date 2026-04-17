@@ -30,16 +30,16 @@
   <style>
     /* ── Variáveis de tema ───────────────────────────────────────────── */
     :root {
-      --bg-page:    #EEF2F7;
-      --bg-card:    #F5F8FC;
-      --bg-input:   #EAEef5;
-      --bg-muted:   #E2E8F2;
-      --bg-header:  #F0F4F9;
-      --c-text-1:   #1e293b;
-      --c-text-2:   #3d5068;
-      --c-text-3:   #7a92aa;
-      --c-border:   #C8D5E3;
-      --c-border-m: #B0C2D6;
+      --bg-page:    #E8EDF5;
+      --bg-card:    #F2F6FB;
+      --bg-input:   #E4EAF3;
+      --bg-muted:   #D8E1ED;
+      --bg-header:  #EBF0F7;
+      --c-text-1:   #0D1F35;
+      --c-text-2:   #1E3A55;
+      --c-text-3:   #3D607F;
+      --c-border:   #B8CADA;
+      --c-border-m: #9AB4CA;
     }
     .dark {
       --bg-page:    #06101E;
@@ -64,8 +64,8 @@
     .nav-link.active { background-color:#0E2F66;color:#fff }
     .nav-link.active  { color:#06B6D4;font-weight:600 }
 
-    .th { padding:.7rem 1rem;text-align:left;font-size:.7rem;font-weight:600;
-      text-transform:uppercase;letter-spacing:.05em;color:var(--c-text-2);background-color:var(--bg-muted) }
+    .th { padding:.7rem 1rem;text-align:left;font-size:.7rem;font-weight:700;
+      text-transform:uppercase;letter-spacing:.06em;color:var(--c-text-1);background-color:var(--bg-muted) }
     .td { padding:.7rem 1rem;color:var(--c-text-1) }
 
     .badge-green { display:inline-flex;padding:.2rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600;background:#dcfce7;color:#166534 }
@@ -83,7 +83,7 @@
     .field-input:focus { border-color:#0891B2;box-shadow:0 0 0 3px rgba(8,145,178,.15) }
     select.field-input { cursor:pointer }
 
-    /* ── Overrides Tailwind — light mode ─────────────────────────────── */
+    /* ── Overrides Tailwind — light e dark mode ──────────────────────── */
     .bg-white        { background-color:var(--bg-card)   !important }
     .bg-slate-50     { background-color:var(--bg-input)  !important }
     .bg-slate-100    { background-color:var(--bg-muted)  !important }
@@ -91,11 +91,13 @@
     .border-slate-200,
     .border-slate-300 { border-color:var(--c-border) !important }
     .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color:var(--c-border) !important }
+    /* Texto — contraste reforçado no light mode */
     .text-slate-800,
     .text-slate-700  { color:var(--c-text-1) !important }
     .text-slate-600,
     .text-slate-500  { color:var(--c-text-2) !important }
     .text-slate-400  { color:var(--c-text-3) !important }
+    .text-slate-300  { color:var(--c-text-3) !important }
     .hover\:bg-slate-50:hover  { background-color:var(--bg-input) !important }
     .hover\:bg-slate-100:hover { background-color:var(--bg-muted) !important }
 
