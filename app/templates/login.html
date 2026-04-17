@@ -1,19 +1,73 @@
 <!DOCTYPE html>
-<!--
-  ATENÇÃO: este arquivo é um resquício e NÃO é usado pelo sistema.
-  O template de login real é: app/templates/login.html
-  Este arquivo pode ser removido com segurança.
-
-  Adicionado redirect como fallback caso seja acessado acidentalmente
-  (ex: servidor configurado para servir este caminho diretamente).
--->
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=/auth/login">
-  <title>Redirecionando…</title>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login — OrbisClin Cold</title>
+  <script>tailwind.config={theme:{extend:{colors:{
+    orbis:"#0E2F66",
+    orbislight:"#1A4FA0",
+    orbisnoite:"#0B1F40",
+    orbisfundo:"#06101E",
+    ccf:"#0891B2",
+    ccflight:"#06B6D4"
+  }}}}</script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <p>Redirecionando para <a href="/auth/login">/auth/login</a>…</p>
+<body class="h-full bg-orbisfundo flex items-center justify-center p-4">
+  <div class="w-full max-w-sm">
+
+    <!-- Marca Órbita + wordmark -->
+    <div class="text-center mb-8">
+      <div class="flex justify-center mb-5">
+        <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+          <!-- órbita 1 — sólida ciano, desenhada antes do núcleo -->
+          <ellipse cx="32" cy="32" rx="29" ry="9" fill="none" stroke="#0891B2" stroke-width="2" transform="rotate(-28 32 32)"/>
+          <!-- órbita 2 — tracejada branca sutil -->
+          <ellipse cx="32" cy="32" rx="29" ry="9" fill="none" stroke="white" stroke-width="1.5" stroke-dasharray="3,3" stroke-opacity="0.25" transform="rotate(42 32 32)"/>
+          <!-- núcleo — cobre parte das órbitas que passam "atrás" -->
+          <circle cx="32" cy="32" r="13" fill="#1A4FA0"/>
+          <!-- snowflake dentro do núcleo -->
+          <line x1="32" y1="20" x2="32" y2="44" stroke="white" stroke-width="2"   stroke-linecap="round"/>
+          <line x1="20" y1="32" x2="44" y2="32" stroke="white" stroke-width="2"   stroke-linecap="round"/>
+          <line x1="23" y1="23" x2="41" y2="41" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="41" y1="23" x2="23" y2="41" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- sensores nas órbitas -->
+          <circle cx="58" cy="19" r="4"   fill="#0891B2"/>
+          <circle cx="6"  cy="45" r="3"   fill="white" opacity="0.55"/>
+        </svg>
+      </div>
+      <p class="text-ccf font-bold text-xs tracking-widest uppercase">OrbisClin</p>
+      <h1 class="text-white font-extrabold text-3xl mt-1 leading-none">Cold</h1>
+      <p class="text-slate-500 text-xs tracking-widest uppercase mt-2">Cold Chain Monitoring</p>
+    </div>
+
+    <!-- Formulário -->
+    <form method="post" action="/auth/login"
+          class="bg-orbisnoite/80 border border-orbis/60 rounded-2xl p-7 shadow-2xl">
+      {% if erro %}
+      <div class="bg-red-900/40 border border-red-700/60 text-red-300 text-sm px-3 py-2.5 rounded-lg mb-5">{{ erro }}</div>
+      {% endif %}
+      <div class="mb-4">
+        <label class="block text-slate-300 text-xs font-semibold mb-1.5 uppercase tracking-wide">Usuário</label>
+        <input name="username" type="text" required autofocus
+               class="w-full bg-orbisfundo/60 border border-slate-700 rounded-lg px-3.5 py-2.5
+                      text-white text-sm focus:outline-none focus:ring-2 focus:ring-ccf
+                      placeholder-slate-600 transition-all">
+      </div>
+      <div class="mb-6">
+        <label class="block text-slate-300 text-xs font-semibold mb-1.5 uppercase tracking-wide">Senha</label>
+        <input name="password" type="password" required
+               class="w-full bg-orbisfundo/60 border border-slate-700 rounded-lg px-3.5 py-2.5
+                      text-white text-sm focus:outline-none focus:ring-2 focus:ring-ccf
+                      transition-all">
+      </div>
+      <button type="submit"
+              class="w-full bg-ccf hover:bg-ccflight text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">
+        Entrar
+      </button>
+    </form>
+
+    <p class="text-center text-slate-700 text-xs mt-6">RDC 430/2020 ANVISA</p>
+  </div>
 </body>
 </html>
